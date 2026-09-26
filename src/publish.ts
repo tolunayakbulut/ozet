@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { TwitterApi } from "twitter-api-v2";
 import type { Story } from "./select.ts";
@@ -12,6 +12,7 @@ import type { Story } from "./select.ts";
  * Facebook:  FB_PAGE_ID, IG_ACCESS_TOKEN (same Page token, needs pages_manage_posts), IMAGE_URL
  * X:         X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
  *            X_REPLY_TO (optional): skip the image post and only add the detail thread under this tweet
+ *            X_MODE (optional): "photo" | "video"; default alternates by ISO week (experiment)
  */
 
 const env = process.env;
@@ -74,6 +75,18 @@ function threadTexts(stories: Story[]): string[] {
   });
 }
 
+/** ISO-8601 week number of a YYYY-MM-DD date. */
+function isoWeek(ymd: string): number {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/**
+ * X experiment, alternating weekly: even weeks post the image plus a per-story detail thread,
+ * odd weeks post the video plus one reply with sources. Logs {mode, id} to x.json for metrics.
+ */
 async function x(image: Buffer, stories: Story[], title: string) {
   const client = new TwitterApi({
     appKey: env.X_API_KEY!,
@@ -81,25 +94,35 @@ async function x(image: Buffer, stories: Story[], title: string) {
     accessToken: env.X_ACCESS_TOKEN!,
     accessSecret: env.X_ACCESS_SECRET!,
   });
-  let parent = env.X_REPLY_TO;
-  if (!parent) {
+  if (env.X_REPLY_TO) {
+    let parent = env.X_REPLY_TO;
+    for (const text of threadTexts(stories)) parent = (await client.v2.reply(text, parent)).data.id;
+    return env.X_REPLY_TO;
+  }
+
+  const mode = env.X_MODE ?? (isoWeek(date) % 2 === 0 ? "photo" : "video");
+  let root: string;
+  if (mode === "video") {
+    const video = await readFile(path.join(dir, "video.mp4"));
+    const mediaId = await client.v2.uploadMedia(video, { media_type: "video/mp4", media_category: "tweet_video" });
+    root = (await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } })).data.id;
+    const sources = [...new Set(stories.flatMap((s) => s.sources))].join(", ");
+    await client.v2.reply(`Kaynaklar: ${sources}\nHer akşam 20:00'de günün manşetleri · @ozetmanset`.slice(0, 280), root);
+  } else {
     const mediaId = await client.v2.uploadMedia(image, { media_type: "image/jpeg", media_category: "tweet_image" });
-    const tweet = await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } });
-    parent = tweet.data.id;
+    root = (await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } })).data.id;
+    let parent = root;
+    for (const text of threadTexts(stories)) parent = (await client.v2.reply(text, parent)).data.id;
   }
-  const root = parent;
-  for (const text of threadTexts(stories)) {
-    const reply = await client.v2.reply(text, parent);
-    parent = reply.data.id;
-  }
-  return root;
+  await writeFile(path.join(dir, "x.json"), JSON.stringify({ date, mode, id: root }) + "\n");
+  return `${mode} ${root}`;
 }
 
 async function main() {
   const image = await readFile(path.join(dir, "01.jpg"));
   const caption = await readFile(path.join(dir, "caption.txt"), "utf8");
   const stories = JSON.parse(await readFile(path.join(dir, "stories.json"), "utf8")) as Story[];
-  const title = caption.split("\n")[0] + "\nDetaylar ↓";
+  const title = caption.split("\n")[0];
 
   const platforms: [string, boolean, () => Promise<unknown>][] = [
     ["Instagram", Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.IMAGE_URL), () => instagram({ image_url: env.IMAGE_URL!, caption })],

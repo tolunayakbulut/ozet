@@ -31,7 +31,7 @@ npm start
 
 ## Otomatik yayın (GitHub Actions)
 
-`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e (görsel + detay zinciri) paylaşır. Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
+`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e paylaşır. X'te haftalık deney: çift ISO haftası görsel + detay zinciri, tek hafta video + kaynak yanıtı; gönderi id'leri ve ertesi gün metrikleri `images` branch'inde `data/x/` altında (`src/x-metrics.ts`). Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
 
 Repo secrets (Settings → Secrets and variables → Actions):
 

@@ -63,6 +63,21 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
 
+      - name: X experiment log and metrics
+        if: always()
+        run: |
+          DATE=$(date -u +%F)
+          mkdir -p /tmp/images/data/x
+          if [ -f "out/$DATE/x.json" ]; then cp "out/$DATE/x.json" "/tmp/images/data/x/$DATE.json"; fi
+          node --import tsx src/x-metrics.ts /tmp/images/data/x
+          git -C /tmp/images add data
+          git -C /tmp/images commit -qm "x log $DATE" && git -C /tmp/images push -q origin images || true
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
