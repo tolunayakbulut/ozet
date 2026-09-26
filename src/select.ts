@@ -6,6 +6,8 @@ import type { Category } from "./feeds.ts";
 
 export interface Story {
   title: string;
+  /** Exact substring of title to emphasize. */
+  highlight?: string;
   /** Most important story of the day (first by importance, before category sorting). */
   top?: boolean;
   summary: string;
@@ -126,6 +128,16 @@ export function selectHeuristic(articles: Article[], count: number): Story[] {
   return out;
 }
 
+/** "A [B] C" -> title "A B C", highlight "B". Missing/odd brackets -> no highlight. */
+function splitHighlight(raw: string): { title: string; highlight?: string } {
+  const m = raw.match(/^([^\[\]]*)\[([^\[\]]+)\]([^\[\]]*)$/);
+  if (!m) {
+    console.warn(`  ! vurgu işareti yok: "${raw}"`);
+    return { title: raw.replace(/[\[\]]/g, "") };
+  }
+  return { title: m[1] + m[2] + m[3], highlight: m[2] };
+}
+
 /** Numbers in generated text that appear nowhere in the cluster's source text (hallucination guard). */
 function unsupportedNumbers(text: string, articles: Article[]): string[] {
   const source = articles.map((a) => `${a.title} ${a.summary}`).join(" ").replace(/\s/g, "");
@@ -150,6 +162,7 @@ Görevin:
 - Magazin, reklam, burç, tekrar eden rutin duyuruları seçme.
 - Her olay için:
   - title: olayı tek başına anlatan, bilgi veren tek cümle (en fazla 90 karakter). Okuyan sadece bunu okuyup ne olduğunu anlamalı. Örnek: "FIFA, Fenerbahçe'ye üç dönem transfer yasağı verdi". Tık tuzağı, soru, alıntı başlığı yok.
+    Başlığın en önemli 1-4 kelimesini köşeli parantezle işaretle (tam bir çift). Göz ilk buraya gitmeli: ne oldu, kritik sayı. Örnek: "FIFA, Fenerbahçe'ye [üç dönem transfer yasağı] verdi".
   - summary: başlıkta olmayan en önemli ek bilgiyi veren 1-2 cümle (en fazla 180 karakter).
 - Her olayı yalnızca kendi kümesindeki metne dayanarak yaz; başka kümelerden bilgi taşıma. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kaynak metni kopyalama.
 - Tarafsız ve sade dil kullan; yorum ekleme.
@@ -203,7 +216,7 @@ export async function selectWithClaude(articles: Article[], count: number): Prom
       });
       return {
         ...toStory(clusters[s.cluster_id], s.category),
-        title: s.title,
+        ...splitHighlight(s.title),
         summary: kept.join("").trim() || s.title,
       };
     });

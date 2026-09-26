@@ -17,6 +17,18 @@ const LOGO_CSS = `
 .logo i:first-of-type { left: 33%; } .logo i:last-of-type { right: 33%; }
 `;
 
+const BRAND_RED = "#D6333A";
+const INK = "#16140F";
+
+export interface Theme {
+  /** Color numbers and category labels per category, or keep them neutral. */
+  categoryColors: boolean;
+  /** Emphasize each story's highlight phrase: off, in its category color, or in brand red. */
+  highlight: "none" | "category" | "brand";
+}
+
+export const DEFAULT_THEME: Theme = { categoryColors: true, highlight: "none" };
+
 const COLORS: Record<Category, string> = {
   gundem: "#D6333A",
   ekonomi: "#1F8A55",
@@ -43,8 +55,17 @@ function marketStrip(quotes: Quote[]): string {
   return `<section class="market">${cells}</section>`;
 }
 
+/** Title with its highlight phrase wrapped in <mark>. */
+function headline(s: Story): string {
+  const i = s.highlight ? s.title.indexOf(s.highlight) : -1;
+  if (i < 0) return esc(s.title);
+  const end = i + s.highlight!.length;
+  return `${esc(s.title.slice(0, i))}<mark>${esc(s.title.slice(i, end))}</mark>${esc(s.title.slice(end))}`;
+}
+
 /** Single-image digest: every story as one numbered headline on one page. */
-export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = []): string {
+export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = [], theme = DEFAULT_THEME): string {
+  const markColor = theme.highlight === "brand" ? BRAND_RED : "var(--c)";
   const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
   const weekday = date.toLocaleDateString("tr-TR", { weekday: "long" });
   const sources = [...new Set(stories.flatMap((s) => s.sources))];
@@ -52,11 +73,11 @@ export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = []): 
   const items = stories
     .map(
       (s, i) => `
-      <li class="${s.top ? "top" : ""}" style="--c:${COLORS[s.category]}">
+      <li class="${s.top ? "top" : ""}" style="--c:${theme.categoryColors ? COLORS[s.category] : INK}">
         <span class="num serif">${i + 1}</span>
         <div>
           <span class="cat">${CATEGORY_LABEL[s.category]}${s.top ? `<span class="toptag">★ Günün manşeti</span>` : ""}</span>
-          <p class="headline">${esc(s.title)}</p>
+          <p class="headline">${theme.highlight === "none" ? esc(s.title) : headline(s)}</p>
         </div>
       </li>`,
     )
@@ -93,7 +114,10 @@ li:last-child { border-bottom: none; }
 body > header, body > ol, body > .market, body > footer { position: relative; z-index: 1; }
 li.top { background: #E9E1D2; margin: 0 -28px; padding: 18px 28px; border-radius: 12px; border-bottom-color: transparent; }
 li.top .headline { font-weight: 700; font-size: calc(var(--h) * 1.08); }
-.toptag { margin-left: 12px; padding: 3px 10px; border-radius: 999px; background: var(--c); color: #fff; letter-spacing: 0.08em; }
+.headline mark { background: none; color: ${markColor}; font-weight: 700; }
+li.top .headline mark { font-weight: 800; }
+.cat { color: ${theme.categoryColors ? "var(--c)" : "#8A8272"}; }
+.toptag { margin-left: 12px; padding: 3px 10px; border-radius: 999px; background: ${theme.categoryColors ? "var(--c)" : BRAND_RED}; color: #fff; letter-spacing: 0.08em; }
 .headline { font-size: var(--h); font-weight: 500; line-height: 1.22; letter-spacing: -0.005em; }
 .market { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid #16140F; }
 .q { display: flex; flex-direction: column; gap: 2px; padding: 16px 0 18px 20px; border-left: 1px solid #D9D1C2; }
