@@ -50,6 +50,7 @@ async function main() {
     ? await selectWithClaude(articles, STORY_COUNT)
     : selectHeuristic(articles, STORY_COUNT);
   // Fixed category order every day; importance order is kept within a category (stable sort).
+  if (selected[0]) selected[0].top = true;
   const order = Object.keys(CATEGORY_LABEL);
   const stories = [...selected].sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
 

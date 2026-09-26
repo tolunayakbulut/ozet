@@ -43,6 +43,14 @@ function marketStrip(quotes: Quote[]): string {
   return `<section class="market">${cells}</section>`;
 }
 
+/** Title with its highlight phrase wrapped for category-colored emphasis. */
+function headline(s: Story): string {
+  const i = s.highlight ? s.title.indexOf(s.highlight) : -1;
+  if (i < 0) return esc(s.title);
+  const end = i + s.highlight!.length;
+  return `${esc(s.title.slice(0, i))}<mark>${esc(s.title.slice(i, end))}</mark>${esc(s.title.slice(end))}`;
+}
+
 /** Single-image digest: every story as one numbered headline on one page. */
 export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = []): string {
   const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
@@ -52,11 +60,11 @@ export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = []): 
   const items = stories
     .map(
       (s, i) => `
-      <li style="--c:${COLORS[s.category]}">
+      <li class="${s.top ? "top" : ""}" style="--c:${COLORS[s.category]}">
         <span class="num serif">${i + 1}</span>
         <div>
-          <span class="cat">${CATEGORY_LABEL[s.category]}</span>
-          <p class="headline">${esc(s.title)}</p>
+          <span class="cat">${CATEGORY_LABEL[s.category]}${s.top ? `<span class="toptag">★ Günün manşeti</span>` : ""}</span>
+          <p class="headline">${headline(s)}</p>
         </div>
       </li>`,
     )
@@ -89,7 +97,16 @@ li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: sta
 li:last-child { border-bottom: none; }
 .num { font-size: calc(var(--h) * 1.45); font-weight: 800; color: var(--c); line-height: 1; }
 .cat { display: block; font-size: 17px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--c); margin-bottom: 6px; }
-.headline { font-size: var(--h); font-weight: 600; line-height: 1.22; letter-spacing: -0.005em; }
+.wm-logo { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%) rotate(-12deg); opacity: 0.045; pointer-events: none; z-index: 0; }
+.wm-logo .logo { background: transparent; }
+.wm-logo .logo .o { color: #16140F; }
+.wm-side { position: absolute; right: 26px; top: 50%; transform: translate(50%, -50%) rotate(90deg); transform-origin: center; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: 0.3em; color: #B9AF9D; }
+body > header, body > ol, body > .market, body > footer { position: relative; z-index: 1; }
+li.top { background: #E9E1D2; margin: 0 -20px; padding: 16px 20px; border-radius: 12px; border-bottom-color: transparent; }
+li.top .headline { font-weight: 700; font-size: calc(var(--h) * 1.08); }
+.toptag { margin-left: 12px; padding: 3px 10px; border-radius: 999px; background: var(--c); color: #fff; letter-spacing: 0.08em; }
+.headline mark { background: none; color: var(--c); font-weight: 800; }
+.headline { font-size: var(--h); font-weight: 500; line-height: 1.22; letter-spacing: -0.005em; }
 .market { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid #16140F; }
 .q { display: flex; flex-direction: column; gap: 2px; padding: 16px 0 18px 20px; border-left: 1px solid #D9D1C2; }
 .q:first-child { padding-left: 0; border-left: none; }
@@ -108,6 +125,8 @@ footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </div>
     <div class="date"><div class="weekday">${esc(weekday)}</div><div class="day serif">${esc(day)}</div></div>
   </header>
+  <div class="wm-logo">${logoMark(620)}</div>
+  <div class="wm-side">ÖZET MANŞET · ${HANDLE} · ÖZET MANŞET · ${HANDLE}</div>
   <ol class="fit" data-var="--h" data-min="24">${items}</ol>
   ${marketStrip(quotes)}
   <footer>
