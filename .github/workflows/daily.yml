@@ -1,0 +1,59 @@
+name: daily
+
+on:
+  schedule:
+    - cron: "30 16 * * *" # 19:30 Istanbul; Actions cron can run late
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Istanbul
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Render
+        run: npm start
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Push image to images branch (public URL for Instagram)
+        id: image
+        run: |
+          DATE=$(date -u +%F)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin images:images || git branch images "$(git commit-tree "$(git hash-object -t tree /dev/null)" -m init)"
+          git worktree add /tmp/images images
+          cp "out/$DATE/01.jpg" "/tmp/images/$DATE.jpg"
+          git -C /tmp/images add . && git -C /tmp/images commit -m "$DATE" && git -C /tmp/images push origin images
+          echo "url=https://raw.githubusercontent.com/${{ github.repository }}/images/$DATE.jpg" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        run: npm run publish -- "$(date -u +%F)"
+        env:
+          IMAGE_URL: ${{ steps.image.outputs.url }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: out
+          path: out/
