@@ -83,7 +83,7 @@ h1 { font-size: 84px; font-weight: 800; line-height: 0.95; letter-spacing: -0.02
 ol {
   --h: 33px;
   list-style: none; flex: 1; min-height: 0; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: space-between; padding: 8px 0;
+  display: flex; flex-direction: column; justify-content: space-between; padding: 8px 28px; margin: 0 -28px;
 }
 li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; padding: 14px 0; border-bottom: 1px solid #D9D1C2; }
 li:last-child { border-bottom: none; }
@@ -91,7 +91,7 @@ li:last-child { border-bottom: none; }
 .cat { display: block; font-size: 17px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--c); margin-bottom: 6px; }
 .wm-side { position: absolute; right: 26px; top: 50%; transform: translate(50%, -50%) rotate(90deg); transform-origin: center; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: 0.3em; color: #B9AF9D; }
 body > header, body > ol, body > .market, body > footer { position: relative; z-index: 1; }
-li.top { background: #E9E1D2; padding: 18px 24px; grid-template-columns: 52px 1fr; border-radius: 12px; border-bottom-color: transparent; }
+li.top { background: #E9E1D2; margin: 0 -28px; padding: 18px 28px; border-radius: 12px; border-bottom-color: transparent; }
 li.top .headline { font-weight: 700; font-size: calc(var(--h) * 1.08); }
 .toptag { margin-left: 12px; padding: 3px 10px; border-radius: 999px; background: var(--c); color: #fff; letter-spacing: 0.08em; }
 .headline { font-size: var(--h); font-weight: 500; line-height: 1.22; letter-spacing: -0.005em; }
