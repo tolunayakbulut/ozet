@@ -154,13 +154,13 @@ Görevin:
 - İlk sıradaki haber günün manşeti olacak.`;
 
 export async function selectWithClaude(articles: Article[], count: number): Promise<Story[]> {
-  const clusters = cluster(articles).slice(0, 80);
+  const clusters = cluster(articles).slice(0, 40);
   const input = clusters
     .map((c, i) => {
       const sources = [...new Set(c.articles.map((a) => a.source))];
       const lines = c.articles
-        .slice(0, 4)
-        .map((a) => `  - [${a.source}] ${a.title} — ${a.summary.slice(0, 400)}`)
+        .slice(0, 2)
+        .map((a) => `  - [${a.source}] ${a.title} — ${a.summary.slice(0, 250)}`)
         .join("\n");
       return `#${i} (${sources.length} kaynak: ${sources.join(", ")})\n${lines}`;
     })
@@ -169,7 +169,7 @@ export async function selectWithClaude(articles: Article[], count: number): Prom
   const client = new Anthropic();
   const response = await client.messages.parse({
     model: "claude-haiku-4-5",
-    max_tokens: 8000,
+    max_tokens: 3000,
     system: SYSTEM,
     messages: [
       {
@@ -180,6 +180,8 @@ export async function selectWithClaude(articles: Article[], count: number): Prom
     output_config: { format: zodOutputFormat(Selection) },
   });
 
+  const { input_tokens, output_tokens } = response.usage;
+  console.log(`  Claude: ${input_tokens} girdi + ${output_tokens} çıktı token (~$${((input_tokens + output_tokens * 5) / 1e6).toFixed(4)})`);
   const parsed = response.parsed_output;
   if (!parsed) throw new Error(`Claude çıktısı parse edilemedi (stop_reason: ${response.stop_reason})`);
 
