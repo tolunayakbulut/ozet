@@ -27,7 +27,7 @@ export interface Theme {
   highlight: "none" | "category" | "brand";
 }
 
-export const DEFAULT_THEME: Theme = { categoryColors: true, highlight: "none" };
+export const DEFAULT_THEME: Theme = { categoryColors: true, highlight: "category" };
 
 const COLORS: Record<Category, string> = {
   gundem: "#D6333A",
@@ -113,9 +113,7 @@ li:last-child { border-bottom: none; }
 .wm-side { position: absolute; right: 26px; top: 50%; transform: translate(50%, -50%) rotate(90deg); transform-origin: center; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: 0.3em; color: #B9AF9D; }
 body > header, body > ol, body > .market, body > footer { position: relative; z-index: 1; }
 li.top { background: #E9E1D2; margin: 0 -28px; padding: 18px 28px; border-radius: 12px; border-bottom-color: transparent; }
-li.top .headline { font-weight: 700; font-size: calc(var(--h) * 1.08); }
 .headline mark { background: none; color: ${markColor}; font-weight: 700; }
-li.top .headline mark { font-weight: 800; }
 .cat { color: ${theme.categoryColors ? "var(--c)" : "#8A8272"}; }
 .toptag { margin-left: 12px; padding: 3px 10px; border-radius: 999px; background: ${theme.categoryColors ? "var(--c)" : BRAND_RED}; color: #fff; letter-spacing: 0.08em; }
 .headline { font-size: var(--h); font-weight: 500; line-height: 1.22; letter-spacing: -0.005em; }
