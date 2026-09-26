@@ -112,7 +112,9 @@ async function main() {
       "Instagram Reels",
       Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.VIDEO_URL),
       // share_to_feed=false keeps the profile grid to the daily image posts.
-      () => instagram({ video_url: env.VIDEO_URL!, media_type: "REELS", caption, share_to_feed: "false" }),
+      // thumb_offset (ms) picks a cover frame where the full list is on screen, not the dark intro.
+      () =>
+        instagram({ video_url: env.VIDEO_URL!, media_type: "REELS", caption, share_to_feed: "false", thumb_offset: "12000" }),
     ],
     ["Facebook", Boolean(env.FB_PAGE_ID && env.IG_ACCESS_TOKEN && env.IMAGE_URL), () => facebook(caption)],
     ["X", Boolean(env.X_API_KEY && env.X_ACCESS_TOKEN), () => x(image, stories, title)],
