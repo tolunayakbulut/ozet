@@ -46,9 +46,12 @@ async function main() {
 
   const useClaude = !forceHeuristic && Boolean(process.env.ANTHROPIC_API_KEY);
   console.log(useClaude ? "Claude ile seçiliyor…" : "Seçim: sezgisel (LLM yok)…");
-  const stories = useClaude
+  const selected = useClaude
     ? await selectWithClaude(articles, STORY_COUNT)
     : selectHeuristic(articles, STORY_COUNT);
+  // Fixed category order every day; importance order is kept within a category (stable sort).
+  const order = Object.keys(CATEGORY_LABEL);
+  const stories = [...selected].sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
 
   for (const [i, s] of stories.entries()) {
     console.log(`  ${i + 1}. [${CATEGORY_LABEL[s.category]}] ${s.title} (${s.sources.join(", ")})`);
