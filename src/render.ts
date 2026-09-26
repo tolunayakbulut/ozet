@@ -3,14 +3,19 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
- * Renders each HTML page to a 1080x1350 JPEG. Elements marked `.fit` shrink until
+ * Renders each HTML page to a JPEG (default 1080x1350, numbered from startIndex). Elements marked `.fit` shrink until
  * their content no longer overflows: via the CSS variable named in `data-var` if
  * set, otherwise via font-size, down to `data-min` px.
  */
-export async function renderSlides(pages: string[], outDir: string): Promise<string[]> {
+export async function renderSlides(
+  pages: string[],
+  outDir: string,
+  size = { width: 1080, height: 1350 },
+  startIndex = 1,
+): Promise<string[]> {
   await mkdir(outDir, { recursive: true });
   const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: { width: 1080, height: 1350 } });
+  const context = await browser.newContext({ viewport: size });
   const files: string[] = [];
   try {
     for (const [i, html] of pages.entries()) {
@@ -34,7 +39,7 @@ export async function renderSlides(pages: string[], outDir: string): Promise<str
         return stuck;
       });
       if (overflow.length) console.warn(`  ! sayfa ${i + 1}: metin hâlâ taşıyor: ${overflow.join(" | ")}`);
-      const file = path.join(outDir, `${String(i + 1).padStart(2, "0")}.jpg`);
+      const file = path.join(outDir, `${String(i + startIndex).padStart(2, "0")}.jpg`);
       await page.screenshot({ path: file, type: "jpeg", quality: 92 });
       await writeFile(file.replace(/\.jpg$/, ".html"), html);
       await page.close();

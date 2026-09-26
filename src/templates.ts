@@ -156,3 +156,26 @@ ${LOGO_CSS}
 .logo { border-radius: 0; }
 </style></head><body>${logoMark(size)}</body></html>`;
 }
+
+/** 9:16 Instagram story: the digest image centered on a branded background. */
+export function storyHtml(digestJpegBase64: string, date: Date): string {
+  const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Inter:wght@600;700&display=block');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1080px; height: 1920px; }
+body { background: #16140F; color: #F4EFE6; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 44px; }
+.serif { font-family: 'Fraunces', serif; }
+${LOGO_CSS}
+.top { display: flex; align-items: center; gap: 18px; font-size: 30px; font-weight: 700; letter-spacing: 0.2em; }
+.top .logo { outline: 2px solid #F4EFE6; }
+img { width: 960px; border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+.bottom { text-align: center; }
+.bottom .day { font-size: 44px; font-weight: 800; }
+.bottom .cta { margin-top: 12px; font-size: 26px; font-weight: 600; color: #B9AF9D; }
+</style></head><body>
+  <div class="top">${logoMark(64)}<span>${BRAND}</span></div>
+  <img src="data:image/jpeg;base64,${digestJpegBase64}">
+  <div class="bottom"><div class="day serif">${esc(day)}</div><div class="cta">Detaylar ve kaynaklar gönderide · ${HANDLE}</div></div>
+</body></html>`;
+}

@@ -36,13 +36,17 @@ jobs:
           git fetch origin images:images || git branch images "$(git commit-tree "$(git hash-object -t tree /dev/null)" -m init)"
           git worktree add /tmp/images images
           cp "out/$DATE/01.jpg" "/tmp/images/$DATE.jpg"
+          cp "out/$DATE/02.jpg" "/tmp/images/$DATE-story.jpg"
           git -C /tmp/images add . && git -C /tmp/images commit -m "$DATE" && git -C /tmp/images push origin images
-          echo "url=https://raw.githubusercontent.com/${{ github.repository }}/images/$DATE.jpg" >> "$GITHUB_OUTPUT"
+          BASE="https://raw.githubusercontent.com/${{ github.repository }}/images"
+          echo "url=$BASE/$DATE.jpg" >> "$GITHUB_OUTPUT"
+          echo "story=$BASE/$DATE-story.jpg" >> "$GITHUB_OUTPUT"
 
       - name: Publish
         run: npm run publish -- "$(date -u +%F)"
         env:
           IMAGE_URL: ${{ steps.image.outputs.url }}
+          STORY_URL: ${{ steps.image.outputs.story }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

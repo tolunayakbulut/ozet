@@ -7,7 +7,8 @@ import type { Story } from "./select.ts";
  * Publishes out/<date>/01.jpg to every platform whose env vars are set.
  * Platforms are independent: one failing doesn't block the others.
  *
- * Instagram: IG_USER_ID, IG_ACCESS_TOKEN (Facebook Page token), IMAGE_URL (public URL of the image)
+ * Instagram: IG_USER_ID, IG_ACCESS_TOKEN (Facebook Page token), IMAGE_URL (public URL of the image),
+ *            STORY_URL (optional, public URL of the 9:16 story image)
  * Telegram:  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (e.g. @kanaladi; bot must be channel admin)
  * X:         X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
  */
@@ -16,7 +17,8 @@ const env = process.env;
 const date = process.argv[2] ?? new Date().toISOString().slice(0, 10);
 const dir = path.join("out", date);
 
-async function instagram(caption: string) {
+/** Creates a media container, waits until processed, publishes it; returns the media id. */
+async function instagram(params: Record<string, string>) {
   const graph = "https://graph.facebook.com/v23.0";
   const api = `${graph}/${env.IG_USER_ID}`;
   const call = async (url: string, method = "POST") => {
@@ -25,8 +27,7 @@ async function instagram(caption: string) {
     if (!res.ok || body.error) throw new Error(body.error?.message ?? `HTTP ${res.status}`);
     return body;
   };
-  const params = new URLSearchParams({ image_url: env.IMAGE_URL!, caption });
-  const container = await call(`${api}/media?${params}`);
+  const container = await call(`${api}/media?${new URLSearchParams(params)}`);
   for (let i = 0; i < 20; i++) {
     const { status_code } = await call(`${graph}/${container.id}?fields=status_code`, "GET");
     if (status_code === "FINISHED") break;
@@ -87,7 +88,12 @@ async function main() {
   const title = caption.split("\n")[0];
 
   const platforms: [string, boolean, () => Promise<unknown>][] = [
-    ["Instagram", Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.IMAGE_URL), () => instagram(caption)],
+    ["Instagram", Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.IMAGE_URL), () => instagram({ image_url: env.IMAGE_URL!, caption })],
+    [
+      "Instagram hikâye",
+      Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.STORY_URL),
+      () => instagram({ image_url: env.STORY_URL!, media_type: "STORIES" }),
+    ],
     ["Telegram", Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID), () => telegram(image, caption, title)],
     ["X", Boolean(env.X_API_KEY && env.X_ACCESS_TOKEN), () => x(image, stories, title)],
   ];

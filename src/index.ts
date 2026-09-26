@@ -1,8 +1,8 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fetchAll } from "./fetch.ts";
 import { selectHeuristic, selectWithClaude, type Story } from "./select.ts";
-import { digestHtml } from "./templates.ts";
+import { digestHtml, storyHtml } from "./templates.ts";
 import { renderSlides } from "./render.ts";
 import { CATEGORY_LABEL } from "./feeds.ts";
 import { fetchMarket, type Quote } from "./market.ts";
@@ -68,6 +68,9 @@ async function main() {
 
   console.log("Render…");
   const files = await renderSlides([digestHtml(stories, now, quotes)], outDir);
+  // 02.jpg: 9:16 story version wrapping the digest image.
+  const digest = (await readFile(files[0])).toString("base64");
+  files.push(...(await renderSlides([storyHtml(digest, now)], outDir, { width: 1080, height: 1920 }, 2)));
 
   const caption = buildCaption(stories, now);
   if (caption.length > CAPTION_LIMIT) console.warn(`  ! caption ${caption.length} karakter, Instagram sınırı 2200`);
