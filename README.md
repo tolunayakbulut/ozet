@@ -38,6 +38,5 @@ Repo secrets (Settings → Secrets and variables → Actions):
 |---|---|
 | `ANTHROPIC_API_KEY` | console.anthropic.com |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | @BotFather ile bot aç, kanala admin ekle; chat id = `@kanaladi` |
-| `IG_USER_ID`, `IG_ACCESS_TOKEN` | Meta app → "Instagram API with Instagram Login" → uzun ömürlü token |
-| `GH_PAT` | Fine-grained PAT, bu repoda Secrets: read/write (Instagram token'ını aylık yenilemek için) |
+| `IG_USER_ID`, `IG_ACCESS_TOKEN` | Instagram, "Özet Manşet" Facebook sayfasına bağlı; token = sayfanın süresiz Page access token'ı (Graph API Explorer → uzun ömürlü user token → /me/accounts) |
 | `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET` | developer.x.com → app → Read and Write izni |

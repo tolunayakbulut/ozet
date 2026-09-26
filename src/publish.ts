@@ -7,7 +7,7 @@ import type { Story } from "./select.ts";
  * Publishes out/<date>/01.jpg to every platform whose env vars are set.
  * Platforms are independent: one failing doesn't block the others.
  *
- * Instagram: IG_USER_ID, IG_ACCESS_TOKEN, IMAGE_URL (public URL of the image)
+ * Instagram: IG_USER_ID, IG_ACCESS_TOKEN (Facebook Page token), IMAGE_URL (public URL of the image)
  * Telegram:  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (e.g. @kanaladi; bot must be channel admin)
  * X:         X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
  */
@@ -17,7 +17,8 @@ const date = process.argv[2] ?? new Date().toISOString().slice(0, 10);
 const dir = path.join("out", date);
 
 async function instagram(caption: string) {
-  const api = `https://graph.instagram.com/v23.0/${env.IG_USER_ID}`;
+  const graph = "https://graph.facebook.com/v23.0";
+  const api = `${graph}/${env.IG_USER_ID}`;
   const call = async (url: string, method = "POST") => {
     const res = await fetch(`${url}${url.includes("?") ? "&" : "?"}access_token=${env.IG_ACCESS_TOKEN}`, { method });
     const body = (await res.json()) as { id?: string; status_code?: string; error?: { message: string } };
@@ -27,7 +28,7 @@ async function instagram(caption: string) {
   const params = new URLSearchParams({ image_url: env.IMAGE_URL!, caption });
   const container = await call(`${api}/media?${params}`);
   for (let i = 0; i < 20; i++) {
-    const { status_code } = await call(`https://graph.instagram.com/v23.0/${container.id}?fields=status_code`, "GET");
+    const { status_code } = await call(`${graph}/${container.id}?fields=status_code`, "GET");
     if (status_code === "FINISHED") break;
     if (status_code === "ERROR" || status_code === "EXPIRED") throw new Error(`container ${status_code}`);
     await new Promise((r) => setTimeout(r, 3000));
