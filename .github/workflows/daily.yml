@@ -2,7 +2,7 @@ name: daily
 
 on:
   schedule:
-    - cron: "30 16 * * *" # 19:30 Istanbul; Actions cron can run late
+    - cron: "15 16 * * *" # 19:15 Istanbul; start early since Actions cron can run late, publish waits for 20:00
   workflow_dispatch:
 
 permissions:
@@ -41,6 +41,13 @@ jobs:
           BASE="https://raw.githubusercontent.com/${{ github.repository }}/images"
           echo "url=$BASE/$DATE.jpg" >> "$GITHUB_OUTPUT"
           echo "story=$BASE/$DATE-story.jpg" >> "$GITHUB_OUTPUT"
+
+      - name: Wait until 20:00 Istanbul (scheduled runs only)
+        if: github.event_name == 'schedule'
+        run: |
+          TARGET=$(date -u -d "17:00" +%s)
+          NOW=$(date -u +%s)
+          if [ "$NOW" -lt "$TARGET" ]; then sleep $((TARGET - NOW)); fi
 
       - name: Publish
         run: npm run publish -- "$(date -u +%F)"
