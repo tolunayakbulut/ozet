@@ -11,6 +11,7 @@ import type { Story } from "./select.ts";
  *            STORY_URL (optional, public URL of the 9:16 story image)
  * Telegram:  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (e.g. @kanaladi; bot must be channel admin)
  * X:         X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
+ *            X_REPLY_TO (optional): skip the image post and only add the detail thread under this tweet
  */
 
 const env = process.env;
@@ -69,6 +70,17 @@ function tweetText(stories: Story[], title: string): string {
   return text;
 }
 
+/** One reply per story: headline, detail and sources, kept under X's 280-char limit. */
+function threadTexts(stories: Story[]): string[] {
+  return stories.map((s, i) => {
+    const head = `${i + 1}. ${s.title}`;
+    const tail = `\nKaynak: ${s.sources.slice(0, 3).join(", ")}`;
+    const room = 275 - head.length - tail.length - 1;
+    const detail = s.summary.length <= room ? s.summary : s.summary.slice(0, s.summary.lastIndexOf(" ", room - 1)) + "…";
+    return `${head}\n${detail}${tail}`;
+  });
+}
+
 async function x(image: Buffer, stories: Story[], title: string) {
   const client = new TwitterApi({
     appKey: env.X_API_KEY!,
@@ -76,16 +88,25 @@ async function x(image: Buffer, stories: Story[], title: string) {
     accessToken: env.X_ACCESS_TOKEN!,
     accessSecret: env.X_ACCESS_SECRET!,
   });
-  const mediaId = await client.v2.uploadMedia(image, { media_type: "image/jpeg", media_category: "tweet_image" });
-  const tweet = await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } });
-  return tweet.data.id;
+  let parent = env.X_REPLY_TO;
+  if (!parent) {
+    const mediaId = await client.v2.uploadMedia(image, { media_type: "image/jpeg", media_category: "tweet_image" });
+    const tweet = await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } });
+    parent = tweet.data.id;
+  }
+  const root = parent;
+  for (const text of threadTexts(stories)) {
+    const reply = await client.v2.reply(text, parent);
+    parent = reply.data.id;
+  }
+  return root;
 }
 
 async function main() {
   const image = await readFile(path.join(dir, "01.jpg"));
   const caption = await readFile(path.join(dir, "caption.txt"), "utf8");
   const stories = JSON.parse(await readFile(path.join(dir, "stories.json"), "utf8")) as Story[];
-  const title = caption.split("\n")[0];
+  const title = caption.split("\n")[0] + "\nDetaylar ↓";
 
   const platforms: [string, boolean, () => Promise<unknown>][] = [
     ["Instagram", Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.IMAGE_URL), () => instagram({ image_url: env.IMAGE_URL!, caption })],
