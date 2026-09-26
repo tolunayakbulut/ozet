@@ -6,7 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --env-file-if-exists=.env --import tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "publish": "node --env-file-if-exists=.env --import tsx src/publish.ts"
+    "publish": "node --env-file-if-exists=.env --import tsx src/publish.ts",
+    "logo": "node --import tsx src/logo.mts"
   },
   "keywords": [],
   "author": "",

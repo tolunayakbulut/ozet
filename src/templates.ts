@@ -2,7 +2,20 @@ import { CATEGORY_LABEL, type Category } from "./feeds.ts";
 import type { Story } from "./select.ts";
 import type { Quote } from "./market.ts";
 
-export const BRAND = "GÜNÜN ÖZETİ";
+export const BRAND = "ÖZET MANŞET";
+export const HANDLE = "@ozetmanset";
+
+/** Logo mark: serif "O" whose umlaut dots are red, on a dark square. */
+export function logoMark(size: number): string {
+  return `<span class="logo" style="--s:${size}px"><span class="o serif">O</span><i></i><i></i></span>`;
+}
+
+const LOGO_CSS = `
+.logo { position: relative; display: inline-block; width: var(--s); height: var(--s); background: #16140F; border-radius: calc(var(--s) * 0.18); flex: none; }
+.logo .o { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-40%); text-align: center; color: #F4EFE6; font-size: calc(var(--s) * 0.72); font-weight: 800; line-height: 1; }
+.logo i { position: absolute; top: 16%; width: 12%; height: 12%; border-radius: 50%; background: #D6333A; }
+.logo i:first-of-type { left: 33%; } .logo i:last-of-type { right: 33%; }
+`;
 
 const COLORS: Record<Category, string> = {
   gundem: "#D6333A",
@@ -58,6 +71,9 @@ body {
   padding: 72px 80px 64px; display: flex; flex-direction: column; overflow: hidden;
 }
 .serif { font-family: 'Fraunces', serif; }
+${LOGO_CSS}
+.brandrow { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.brandrow .brand { margin-bottom: 0; }
 header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 24px; border-bottom: 6px solid #16140F; }
 .brand { font-size: 22px; font-weight: 700; letter-spacing: 0.22em; margin-bottom: 10px; }
 h1 { font-size: 84px; font-weight: 800; line-height: 0.95; letter-spacing: -0.02em; }
@@ -82,11 +98,12 @@ li:last-child { border-bottom: none; }
 .qc { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .qc.up { color: #1F8A55; } .qc.down { color: #D6333A; } .qc.flat { color: #6B6559; }
 footer { display: flex; justify-content: space-between; gap: 40px; padding-top: 22px; border-top: 2px solid #16140F; font-size: 19px; color: #6B6559; }
-footer b { color: #16140F; font-weight: 600; }
+footer b { color: #16140F; font-weight: 600; white-space: nowrap; }
+footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style></head><body>
   <header>
     <div>
-      <div class="brand">${BRAND}</div>
+      <div class="brandrow">${logoMark(44)}<span class="brand">${BRAND}</span></div>
       <h1 class="serif">Bugün ne oldu?</h1>
     </div>
     <div class="date"><div class="weekday">${esc(weekday)}</div><div class="day serif">${esc(day)}</div></div>
@@ -95,7 +112,19 @@ footer b { color: #16140F; font-weight: 600; }
   ${marketStrip(quotes)}
   <footer>
     <span>Kaynaklar: ${esc(sources.slice(0, 6).join(", "))}${sources.length > 6 ? "…" : ""}</span>
-    <b>Detaylar açıklamada ↓</b>
+    <b>${HANDLE} · Detaylar açıklamada</b>
   </footer>
 </body></html>`;
+}
+
+/** Square profile picture / standalone logo page. */
+export function logoHtml(size = 1080): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&display=block');
+* { margin: 0; padding: 0; }
+html, body { width: ${size}px; height: ${size}px; background: #16140F; }
+.serif { font-family: 'Fraunces', serif; }
+${LOGO_CSS}
+.logo { border-radius: 0; }
+</style></head><body>${logoMark(size)}</body></html>`;
 }

@@ -24,11 +24,11 @@ function buildCaption(stories: Story[], date: Date): string {
   const dateLabel = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
   const build = (detailMax: number) =>
     [
-      `Günün özeti · ${dateLabel}`,
+      `Özet Manşet · ${dateLabel}`,
       ...stories.map(
         (s, i) => `${i + 1}. ${s.title}\n${trimTo(s.summary, detailMax)}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
       ),
-      "#gündem #haber #gününözeti",
+      "@ozetmanset · Her akşam günün manşetleri\n#ozetmanset #gündem #haber",
     ].join("\n\n");
   let detailMax = 250;
   let caption = build(detailMax);
