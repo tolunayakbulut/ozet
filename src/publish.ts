@@ -9,7 +9,6 @@ import type { Story } from "./select.ts";
  *
  * Instagram: IG_USER_ID, IG_ACCESS_TOKEN (Facebook Page token), IMAGE_URL (public URL of the image),
  *            STORY_URL (optional, public URL of the 9:16 story image)
- * Telegram:  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (e.g. @kanaladi; bot must be channel admin)
  * X:         X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
  *            X_REPLY_TO (optional): skip the image post and only add the detail thread under this tweet
  */
@@ -37,26 +36,6 @@ async function instagram(params: Record<string, string>) {
   }
   const post = await call(`${api}/media_publish?creation_id=${container.id}`);
   return post.id;
-}
-
-async function telegram(image: Buffer, caption: string, title: string) {
-  const api = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
-  const form = new FormData();
-  form.append("chat_id", env.TELEGRAM_CHAT_ID!);
-  form.append("photo", new Blob([new Uint8Array(image)], { type: "image/jpeg" }), "ozet.jpg");
-  form.append("caption", title);
-  const send = async (method: string, body: FormData | string) => {
-    const res = await fetch(`${api}/${method}`, {
-      method: "POST",
-      body,
-      headers: typeof body === "string" ? { "Content-Type": "application/json" } : undefined,
-    });
-    const json = (await res.json()) as { ok: boolean; description?: string };
-    if (!json.ok) throw new Error(json.description);
-  };
-  await send("sendPhoto", form);
-  // Photo captions max 1024 chars; details go in a follow-up message (max 4096).
-  await send("sendMessage", JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: caption }));
 }
 
 /** Header plus as many headlines as fit in 280 chars. */
@@ -115,7 +94,6 @@ async function main() {
       Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.STORY_URL),
       () => instagram({ image_url: env.STORY_URL!, media_type: "STORIES" }),
     ],
-    ["Telegram", Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID), () => telegram(image, caption, title)],
     ["X", Boolean(env.X_API_KEY && env.X_ACCESS_TOKEN), () => x(image, stories, title)],
   ];
 

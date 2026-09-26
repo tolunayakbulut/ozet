@@ -30,13 +30,12 @@ npm start
 
 ## Otomatik yayın (GitHub Actions)
 
-`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram, Telegram ve X'e paylaşır. Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
+`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + hikâye) ve X'e (görsel + detay zinciri) paylaşır. Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
 
 Repo secrets (Settings → Secrets and variables → Actions):
 
 | Secret | Nereden |
 |---|---|
 | `ANTHROPIC_API_KEY` | console.anthropic.com |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | @BotFather ile bot aç, kanala admin ekle; chat id = `@kanaladi` |
 | `IG_USER_ID`, `IG_ACCESS_TOKEN` | Instagram, "Özet Manşet" Facebook sayfasına bağlı; token = sayfanın süresiz Page access token'ı (Graph API Explorer → uzun ömürlü user token → /me/accounts) |
 | `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET` | developer.x.com → app → Read and Write izni |
