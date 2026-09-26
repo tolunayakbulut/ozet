@@ -3,7 +3,7 @@ import path from "node:path";
 import { fetchAll } from "./fetch.ts";
 import { selectHeuristic, selectWithClaude, type Story } from "./select.ts";
 import { DEFAULT_THEME, digestHtml } from "./templates.ts";
-import { renderVideo } from "./video.ts";
+import { renderVideo, videoCues } from "./video.ts";
 import { renderSlides } from "./render.ts";
 import { CATEGORY_LABEL } from "./feeds.ts";
 import { fetchMarket, type Quote } from "./market.ts";
@@ -71,7 +71,9 @@ async function main() {
   const files = await renderSlides([digestHtml(stories, now, quotes)], outDir);
   // video.mp4: animated 9:16 version with music, used for the Instagram story and Reels.
   console.log("Video…");
-  files.push(await renderVideo(digestHtml(stories, now, quotes, DEFAULT_THEME, true), path.join(outDir, "video.mp4")));
+  files.push(
+    await renderVideo(digestHtml(stories, now, quotes, DEFAULT_THEME, true), path.join(outDir, "video.mp4"), videoCues(stories)),
+  );
 
   const caption = buildCaption(stories, now);
   if (caption.length > CAPTION_LIMIT) console.warn(`  ! caption ${caption.length} karakter, Instagram sınırı 2200`);

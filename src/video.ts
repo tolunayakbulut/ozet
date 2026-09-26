@@ -4,54 +4,110 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import ffmpegPath from "ffmpeg-static";
+import { TIMELINE, itemTimes } from "./templates.ts";
+import type { Story } from "./select.ts";
 
-export const VIDEO_SECONDS = 16;
 const FPS = 30;
 const SAMPLE_RATE = 44100;
 
+/** Sound cues on the video timeline (seconds). */
+export interface Cues {
+  total: number;
+  whooshes: number[]; // curtain / transition sweeps
+  hits: number[]; // logo impact
+  pops: number[]; // umlaut dots landing
+  ticks: number[]; // each headline sliding in
+  chimes: number[]; // top-story shimmer
+  sting: number; // closing chord
+  bed: [number, number]; // music bed start/end
+}
+
+/** Sound cues matching the motion timeline in templates.ts. */
+export function videoCues(stories: Story[]): Cues {
+  const T = TIMELINE;
+  const ticks = itemTimes(stories.length);
+  const top = stories.findIndex((s) => s.top);
+  return {
+    total: T.total,
+    whooshes: [0, T.introEnd - 0.5, T.outroStart - 0.1],
+    hits: [0.15, T.outroStart + 0.6],
+    pops: [0.85, 1.02, T.outroStart + 1.25, T.outroStart + 1.4],
+    ticks,
+    chimes: top >= 0 ? [ticks[top] + 0.7] : [],
+    sting: T.outroStart + 1.9,
+    bed: [T.introEnd - 0.3, T.outroStart + 0.4],
+  };
+}
+
 /**
- * Procedural background track (no licensing concerns): soft pad chords, a plucked arpeggio
- * and a low pulse over Am–F–C–G, with fade in/out. Returns a 16-bit mono WAV.
+ * Procedural soundtrack (no licensing concerns): a soft Am–F–C–G music bed plus
+ * synthesized SFX at the given cues. Returns a 16-bit mono WAV.
  */
-export function synthMusic(seconds = VIDEO_SECONDS): Buffer {
-  const chords = [
-    [220.0, 261.63, 329.63], // Am
-    [174.61, 220.0, 261.63], // F
-    [196.0, 261.63, 329.63], // C (inversion)
-    [196.0, 246.94, 293.66], // G
-  ];
-  const beat = 60 / 96;
-  const chordLen = beat * 8;
-  const n = Math.floor(seconds * SAMPLE_RATE);
+export function soundtrack(c: Cues): Buffer {
+  const n = Math.floor(c.total * SAMPLE_RATE);
   const out = new Float32Array(n);
+  const add = (at: number, dur: number, fn: (t: number) => number) => {
+    const i0 = Math.max(0, Math.floor(at * SAMPLE_RATE));
+    const i1 = Math.min(n, Math.floor((at + dur) * SAMPLE_RATE));
+    for (let i = i0; i < i1; i++) out[i] += fn(i / SAMPLE_RATE - at);
+  };
+  const sin = (f: number, t: number) => Math.sin(2 * Math.PI * f * t);
 
-  for (let i = 0; i < n; i++) {
-    const t = i / SAMPLE_RATE;
-    const ci = Math.floor(t / chordLen) % chords.length;
-    const chord = chords[ci];
+  // Music bed.
+  const chords = [
+    [220.0, 261.63, 329.63],
+    [174.61, 220.0, 261.63],
+    [196.0, 261.63, 329.63],
+    [196.0, 246.94, 293.66],
+  ];
+  const beat = 60 / 100;
+  const chordLen = beat * 8;
+  const [b0, b1] = c.bed;
+  add(b0, b1 - b0, (t) => {
+    const chord = chords[Math.floor(t / chordLen) % chords.length];
     const tc = t % chordLen;
-
-    // Pad: detuned sines with slow attack and release per chord.
-    const env = Math.min(1, tc / 0.6) * Math.min(1, (chordLen - tc) / 0.4);
+    const env = Math.min(1, tc / 0.5) * Math.min(1, (chordLen - tc) / 0.4);
     let v = 0;
-    for (const f of chord) v += 0.06 * (Math.sin(2 * Math.PI * f * t) + Math.sin(2 * Math.PI * f * 1.003 * t));
-
-    // Arpeggio: 8th notes an octave up, exponential pluck decay.
-    const step = Math.floor(t / (beat / 2));
+    for (const f of chord) v += 0.045 * (sin(f, t) + sin(f * 1.004, t));
     const ts = t % (beat / 2);
-    const note = chord[step % chord.length] * 2;
-    const pluck = Math.exp(-ts * 9);
-    v = v * env + 0.09 * pluck * (Math.sin(2 * Math.PI * note * t) + 0.3 * Math.sin(4 * Math.PI * note * t));
+    const note = chord[Math.floor(t / (beat / 2)) % chord.length] * 2;
+    v = v * env + 0.06 * Math.exp(-ts * 10) * (sin(note, t) + 0.3 * sin(note * 2, t));
+    v += 0.09 * Math.exp(-(t % beat) * 8) * sin(chord[0] / 2, t);
+    const fade = Math.min(1, t / 0.6) * Math.min(1, (b1 - b0 - t) / 0.8);
+    return v * fade;
+  });
 
-    // Low pulse on each beat.
-    const tb = t % beat;
-    v += 0.12 * Math.exp(-tb * 7) * Math.sin(2 * Math.PI * (chord[0] / 2) * t);
-
-    out[i] = v;
+  // Whoosh: noise through a sweeping one-pole lowpass, swelling then fading.
+  for (const at of c.whooshes) {
+    let lp = 0;
+    add(at, 0.9, (t) => {
+      const k = 0.02 + 0.25 * Math.sin(Math.PI * Math.min(1, t / 0.9));
+      lp += k * (Math.random() * 2 - 1 - lp);
+      return 0.55 * lp * Math.sin(Math.PI * Math.min(1, t / 0.9));
+    });
   }
+  // Logo hit: sub drop + bell partials.
+  for (const at of c.hits)
+    add(at, 2.2, (t) => {
+      const sub = 0.5 * Math.exp(-t * 5) * sin(55 + 40 * Math.exp(-t * 20), t);
+      const bell = Math.exp(-t * 2.2) * (0.14 * sin(880, t) + 0.08 * sin(1320, t) + 0.05 * sin(1760 * 1.01, t));
+      return sub + bell;
+    });
+  // Pop: short downward blip.
+  for (const at of c.pops) add(at, 0.12, (t) => 0.3 * Math.exp(-t * 40) * sin(900 - 2500 * t, t));
+  // Tick: soft wooden click.
+  for (const at of c.ticks) add(at, 0.08, (t) => 0.16 * Math.exp(-t * 70) * (sin(1800, t) + 0.5 * sin(2700, t)));
+  // Chime: rising sparkle.
+  for (const at of c.chimes)
+    add(at, 1.2, (t) => [1568, 2093, 2637].reduce((v, f, k) => v + (t > k * 0.08 ? 0.05 * Math.exp(-(t - k * 0.08) * 4) * sin(f, t) : 0), 0));
+  // Sting: A minor add9 swell with long tail.
+  add(c.sting, c.total - c.sting, (t) => {
+    const env = Math.min(1, t / 0.08) * Math.exp(-t * 0.9);
+    return env * [110, 220, 261.63, 329.63, 493.88].reduce((v, f) => v + 0.07 * (sin(f, t) + 0.4 * sin(f * 2, t)), 0);
+  });
 
   let peak = 0;
-  for (const s of out) peak = Math.max(peak, Math.abs(s));
+  for (const v of out) peak = Math.max(peak, Math.abs(v));
   const wav = Buffer.alloc(44 + n * 2);
   wav.write("RIFF", 0);
   wav.writeUInt32LE(36 + n * 2, 4);
@@ -67,9 +123,8 @@ export function synthMusic(seconds = VIDEO_SECONDS): Buffer {
   wav.writeUInt32LE(n * 2, 40);
   for (let i = 0; i < n; i++) {
     const t = i / SAMPLE_RATE;
-    const fade = Math.min(1, t / 0.8) * Math.min(1, (seconds - t) / 1.5);
-    const s = (out[i] / peak) * 0.8 * fade;
-    wav.writeInt16LE(Math.round(Math.max(-1, Math.min(1, s)) * 32767), 44 + i * 2);
+    const fade = Math.min(1, (c.total - t) / 0.3);
+    wav.writeInt16LE(Math.round(Math.max(-1, Math.min(1, (out[i] / peak) * 0.85 * fade)) * 32767), 44 + i * 2);
   }
   return wav;
 }
@@ -87,7 +142,8 @@ function ffmpeg(args: string[]): Promise<void> {
  * Renders an animated HTML page (CSS animations with absolute delays) to a 1080x1920 H.264/AAC MP4.
  * Each frame pauses every animation at time t and screenshots it, so output is deterministic.
  */
-export async function renderVideo(html: string, outFile: string, seconds = VIDEO_SECONDS): Promise<string> {
+export async function renderVideo(html: string, outFile: string, cues: Cues): Promise<string> {
+  const seconds = cues.total;
   const work = await mkdtemp(path.join(tmpdir(), "ozet-video-"));
   const browser = await chromium.launch();
   try {
@@ -122,7 +178,7 @@ export async function renderVideo(html: string, outFile: string, seconds = VIDEO
     }
 
     const music = path.join(work, "music.wav");
-    await writeFile(music, synthMusic(seconds));
+    await writeFile(music, soundtrack(cues));
     await mkdir(path.dirname(outFile), { recursive: true });
     await ffmpeg([
       "-y",
