@@ -209,7 +209,7 @@ export function digestHtml(
 html, body { width: 1080px; height: ${video ? 1920 : 1350}px; }
 body {
   font-family: 'Inter', sans-serif; background: #F4EFE6; color: #16140F;
-  padding: ${video ? "130px 72px 120px" : "72px 80px 64px"}; display: flex; flex-direction: column; overflow: hidden;
+  padding: ${video ? "190px 150px 330px 80px" : "72px 80px 64px"}; display: flex; flex-direction: column; overflow: hidden;
 }
 .serif { font-family: 'Fraunces', serif; }
 ${LOGO_CSS}
