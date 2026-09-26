@@ -33,14 +33,15 @@ jobs:
           DATE=$(date -u +%F)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config http.postBuffer 524288000
           git fetch origin images:images || git branch images "$(git commit-tree "$(git hash-object -t tree /dev/null)" -m init)"
           git worktree add /tmp/images images
           cp "out/$DATE/01.jpg" "/tmp/images/$DATE.jpg"
-          cp "out/$DATE/02.jpg" "/tmp/images/$DATE-story.jpg"
+          cp "out/$DATE/video.mp4" "/tmp/images/$DATE.mp4"
           git -C /tmp/images add . && git -C /tmp/images commit -m "$DATE" && git -C /tmp/images push origin images
           BASE="https://raw.githubusercontent.com/${{ github.repository }}/images"
           echo "url=$BASE/$DATE.jpg" >> "$GITHUB_OUTPUT"
-          echo "story=$BASE/$DATE-story.jpg" >> "$GITHUB_OUTPUT"
+          echo "video=$BASE/$DATE.mp4" >> "$GITHUB_OUTPUT"
 
       - name: Wait until 20:00 Istanbul (scheduled runs only)
         if: github.event_name == 'schedule'
@@ -53,9 +54,10 @@ jobs:
         run: npm run publish -- "$(date -u +%F)"
         env:
           IMAGE_URL: ${{ steps.image.outputs.url }}
-          STORY_URL: ${{ steps.image.outputs.story }}
+          VIDEO_URL: ${{ steps.image.outputs.video }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}

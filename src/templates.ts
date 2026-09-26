@@ -63,8 +63,44 @@ function headline(s: Story): string {
   return `${esc(s.title.slice(0, i))}<mark>${esc(s.title.slice(i, end))}</mark>${esc(s.title.slice(end))}`;
 }
 
-/** Single-image digest: every story as one numbered headline on one page. */
-export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = [], theme = DEFAULT_THEME): string {
+/** Seconds into the video when list item i slides in. */
+export const VIDEO_ITEM_START = 1.3;
+export const VIDEO_ITEM_STEP = 0.8;
+
+/**
+ * Keyframed intro for the 9:16 video: header, then items one by one, then market and footer.
+ * Frames are captured by pausing all animations at t (see video.ts), so delays are absolute times.
+ */
+function videoCss(count: number): string {
+  const item = (i: number) =>
+    `li:nth-child(${i + 1}) { animation: slideIn 0.55s cubic-bezier(.2,.8,.2,1) ${(VIDEO_ITEM_START + i * VIDEO_ITEM_STEP).toFixed(2)}s both; }`;
+  const after = VIDEO_ITEM_START + count * VIDEO_ITEM_STEP;
+  return `
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.brandrow { animation: fadeUp 0.6s ease-out 0.1s both; }
+h1 { animation: fadeUp 0.7s ease-out 0.35s both; }
+.date { animation: fadeUp 0.7s ease-out 0.6s both; }
+header { border-bottom: none; position: relative; }
+header::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: #16140F; transform-origin: left; animation: grow 0.8s ease-out 0.7s both; }
+${Array.from({ length: count }, (_, i) => item(i)).join("\n")}
+.market { animation: fadeUp 0.6s ease-out ${after.toFixed(2)}s both; }
+footer { animation: fadeUp 0.6s ease-out ${(after + 0.4).toFixed(2)}s both; }
+`;
+}
+
+/**
+ * Single-image digest: every story as one numbered headline on one page.
+ * With `video`, renders the 1080x1920 animated layout used for the story/Reels video.
+ */
+export function digestHtml(
+  stories: Story[],
+  date: Date,
+  quotes: Quote[] = [],
+  theme = DEFAULT_THEME,
+  video = false,
+): string {
   const markColor = theme.highlight === "brand" ? BRAND_RED : "var(--c)";
   const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
   const weekday = date.toLocaleDateString("tr-TR", { weekday: "long" });
@@ -86,10 +122,10 @@ export function digestHtml(stories: Story[], date: Date, quotes: Quote[] = [], t
   return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=block');
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 1080px; height: 1350px; }
+html, body { width: 1080px; height: ${video ? 1920 : 1350}px; }
 body {
   font-family: 'Inter', sans-serif; background: #F4EFE6; color: #16140F;
-  padding: 72px 80px 64px; display: flex; flex-direction: column; overflow: hidden;
+  padding: ${video ? "230px 80px 320px" : "72px 80px 64px"}; display: flex; flex-direction: column; overflow: hidden;
 }
 .serif { font-family: 'Fraunces', serif; }
 ${LOGO_CSS}
@@ -102,7 +138,7 @@ h1 { font-size: 84px; font-weight: 800; line-height: 0.95; letter-spacing: -0.02
 .date .weekday { font-size: 24px; font-weight: 500; color: #6B6559; text-transform: capitalize; }
 .date .day { font-size: 40px; font-weight: 700; margin-top: 4px; }
 ol {
-  --h: 33px;
+  --h: ${video ? 38 : 33}px;
   list-style: none; flex: 1; min-height: 0; overflow: hidden;
   display: flex; flex-direction: column; justify-content: space-between; padding: 8px 28px; margin: 0 -28px;
 }
@@ -127,6 +163,7 @@ li.top { background: #E9E1D2; margin: 0 -28px; padding: 18px 28px; border-radius
 footer { display: flex; justify-content: space-between; gap: 40px; padding-top: 22px; border-top: 2px solid #16140F; font-size: 19px; color: #6B6559; }
 footer b { color: #16140F; font-weight: 600; white-space: nowrap; }
 footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+${video ? videoCss(stories.length) : ""}
 </style></head><body>
   <header>
     <div>
@@ -157,25 +194,3 @@ ${LOGO_CSS}
 </style></head><body>${logoMark(size)}</body></html>`;
 }
 
-/** 9:16 Instagram story: the digest image centered on a branded background. */
-export function storyHtml(digestJpegBase64: string, date: Date): string {
-  const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Inter:wght@600;700&display=block');
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 1080px; height: 1920px; }
-body { background: #16140F; color: #F4EFE6; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 44px; }
-.serif { font-family: 'Fraunces', serif; }
-${LOGO_CSS}
-.top { display: flex; align-items: center; gap: 18px; font-size: 30px; font-weight: 700; letter-spacing: 0.2em; }
-.top .logo { outline: 2px solid #F4EFE6; }
-img { width: 960px; border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
-.bottom { text-align: center; }
-.bottom .day { font-size: 44px; font-weight: 800; }
-.bottom .cta { margin-top: 12px; font-size: 26px; font-weight: 600; color: #B9AF9D; }
-</style></head><body>
-  <div class="top">${logoMark(64)}<span>${BRAND}</span></div>
-  <img src="data:image/jpeg;base64,${digestJpegBase64}">
-  <div class="bottom"><div class="day serif">${esc(day)}</div><div class="cta">Detaylar ve kaynaklar gönderide · ${HANDLE}</div></div>
-</body></html>`;
-}

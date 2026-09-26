@@ -26,11 +26,12 @@ npm start
 - `src/select.ts` — kümeleme, sezgisel seçim, Claude seçimi
 - `src/templates.ts` — tek sayfa özet HTML/CSS
 - `src/market.ts` — piyasa verisi (Yahoo Finance, resmi olmayan API)
+- `src/video.ts` — 16 sn 9:16 animasyonlu video (Playwright kareleri + ffmpeg), sentezlenmiş telifsiz müzik
 - `src/render.ts` — Playwright render, taşan metni küçültme
 
 ## Otomatik yayın (GitHub Actions)
 
-`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + hikâye) ve X'e (görsel + detay zinciri) paylaşır. Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
+`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e (görsel + detay zinciri) paylaşır. Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
 
 Repo secrets (Settings → Secrets and variables → Actions):
 
