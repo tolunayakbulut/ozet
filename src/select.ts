@@ -124,6 +124,12 @@ export function selectHeuristic(articles: Article[], count: number): Story[] {
   return out;
 }
 
+/** Numbers in generated text that appear nowhere in the cluster's source text (hallucination guard). */
+function unsupportedNumbers(text: string, articles: Article[]): string[] {
+  const source = articles.map((a) => `${a.title} ${a.summary}`).join(" ").replace(/\s/g, "");
+  return [...new Set(text.match(/\d+(?:[.,]\d+)*/g) ?? [])].filter((n) => !source.includes(n));
+}
+
 const Selection = z.object({
   stories: z.array(
     z.object({
@@ -143,7 +149,7 @@ Görevin:
 - Her olay için:
   - title: olayı tek başına anlatan, bilgi veren tek cümle (en fazla 90 karakter). Okuyan sadece bunu okuyup ne olduğunu anlamalı. Örnek: "FIFA, Fenerbahçe'ye üç dönem transfer yasağı verdi". Tık tuzağı, soru, alıntı başlığı yok.
   - summary: başlıkta olmayan en önemli ek bilgiyi veren 1-2 cümle (en fazla 180 karakter).
-- Sadece verilen metne dayan. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kaynak metni kopyalama.
+- Her olayı yalnızca kendi kümesindeki metne dayanarak yaz; başka kümelerden bilgi taşıma. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kaynak metni kopyalama.
 - Tarafsız ve sade dil kullan; yorum ekleme.
 - İlk sıradaki haber günün manşeti olacak.`;
 
@@ -180,9 +186,21 @@ export async function selectWithClaude(articles: Article[], count: number): Prom
   return parsed.stories
     .filter((s) => clusters[s.cluster_id])
     .slice(0, count)
-    .map((s) => ({
-      ...toStory(clusters[s.cluster_id], s.category),
-      title: s.title,
-      summary: s.summary,
-    }));
+    .map((s) => {
+      const articles = clusters[s.cluster_id].articles;
+      const badTitle = unsupportedNumbers(s.title, articles);
+      if (badTitle.length) console.warn(`  ! BAŞLIK kontrol edilmeli: "${s.title}" (kaynakta yok: ${badTitle.join(", ")})`);
+      // Drop summary sentences carrying numbers the sources don't support.
+      const sentences = s.summary.match(/[^.!?]+[.!?]*/g) ?? [s.summary];
+      const kept = sentences.filter((sentence) => {
+        const bad = unsupportedNumbers(sentence, articles);
+        if (bad.length) console.warn(`  ! özetten cümle silindi (kaynakta yok: ${bad.join(", ")}): ${sentence.trim()}`);
+        return bad.length === 0;
+      });
+      return {
+        ...toStory(clusters[s.cluster_id], s.category),
+        title: s.title,
+        summary: kept.join("").trim() || s.title,
+      };
+    });
 }

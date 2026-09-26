@@ -5,19 +5,35 @@ import { selectHeuristic, selectWithClaude, type Story } from "./select.ts";
 import { digestHtml } from "./templates.ts";
 import { renderSlides } from "./render.ts";
 import { CATEGORY_LABEL } from "./feeds.ts";
+import { fetchMarket, type Quote } from "./market.ts";
 
 const STORY_COUNT = 8;
 const forceHeuristic = process.argv.includes("--no-llm");
 
-/** Image carries headlines only; the caption carries a short detail and sources per item. */
+const CAPTION_LIMIT = 2200;
+
+function trimTo(text: string, max: number): string {
+  return text.length <= max ? text : text.slice(0, text.lastIndexOf(" ", max - 1)) + "…";
+}
+
+/**
+ * Image carries headlines only; the caption carries a short detail and sources per item.
+ * Details are trimmed evenly until the caption fits Instagram's limit.
+ */
 function buildCaption(stories: Story[], date: Date): string {
   const dateLabel = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-  const items = stories.map(
-    (s, i) => `${i + 1}. ${s.title}\n${s.summary}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
-  );
-  return [`Günün özeti · ${dateLabel}`, "", ...items.join("\n\n").split("\n"), "", "#gündem #haber #gününözeti"].join(
-    "\n",
-  );
+  const build = (detailMax: number) =>
+    [
+      `Günün özeti · ${dateLabel}`,
+      ...stories.map(
+        (s, i) => `${i + 1}. ${s.title}\n${trimTo(s.summary, detailMax)}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
+      ),
+      "#gündem #haber #gününözeti",
+    ].join("\n\n");
+  let detailMax = 250;
+  let caption = build(detailMax);
+  while (caption.length > CAPTION_LIMIT && detailMax > 60) caption = build((detailMax -= 10));
+  return caption;
 }
 
 async function main() {
@@ -38,11 +54,19 @@ async function main() {
     console.log(`  ${i + 1}. [${CATEGORY_LABEL[s.category]}] ${s.title} (${s.sources.join(", ")})`);
   }
 
+  let quotes: Quote[] = [];
+  try {
+    quotes = await fetchMarket();
+    console.log(`  Piyasa: ${quotes.map((q) => `${q.label} ${q.value.toFixed(q.decimals)} (${q.changePct.toFixed(2)}%)`).join(", ")}`);
+  } catch (err) {
+    console.warn(`  ! Piyasa verisi alınamadı, şerit atlanıyor: ${(err as Error).message}`);
+  }
+
   console.log("Render…");
-  const files = await renderSlides([digestHtml(stories, now)], outDir);
+  const files = await renderSlides([digestHtml(stories, now, quotes)], outDir);
 
   const caption = buildCaption(stories, now);
-  if (caption.length > 2200) console.warn(`  ! caption ${caption.length} karakter, Instagram sınırı 2200`);
+  if (caption.length > CAPTION_LIMIT) console.warn(`  ! caption ${caption.length} karakter, Instagram sınırı 2200`);
   await writeFile(path.join(outDir, "caption.txt"), caption);
   await writeFile(path.join(outDir, "stories.json"), JSON.stringify(stories, null, 2));
   console.log(`Bitti: ${files.map((f) => path.basename(f)).join(", ")} → ${outDir}/`);
