@@ -2,32 +2,26 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fetchAll } from "./fetch.ts";
 import { selectHeuristic, selectWithClaude, type Story } from "./select.ts";
-import { coverHtml, newsHtml } from "./templates.ts";
+import { digestHtml } from "./templates.ts";
 import { renderSlides } from "./render.ts";
 import { CATEGORY_LABEL } from "./feeds.ts";
 
-// Instagram API carousel limit is 10: cover + 9 stories.
-const STORY_COUNT = 9;
-const useImages = !process.argv.includes("--no-images");
+const STORY_COUNT = 8;
 const forceHeuristic = process.argv.includes("--no-llm");
 
-function buildCaption(stories: Story[], dateLabel: string): string {
-  const lines = stories.map((s, i) => `${i + 1}. ${s.title}`);
-  const sources = [...new Set(stories.flatMap((s) => s.sources))];
-  return [
-    `Günün özeti · ${dateLabel}`,
-    "",
-    ...lines,
-    "",
-    `Kaynaklar: ${sources.join(", ")}`,
-    "",
-    "#gündem #haber #gününözeti",
-  ].join("\n");
+/** Image carries headlines only; the caption carries a short detail and sources per item. */
+function buildCaption(stories: Story[], date: Date): string {
+  const dateLabel = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  const items = stories.map(
+    (s, i) => `${i + 1}. ${s.title}\n${s.summary}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
+  );
+  return [`Günün özeti · ${dateLabel}`, "", ...items.join("\n\n").split("\n"), "", "#gündem #haber #gününözeti"].join(
+    "\n",
+  );
 }
 
 async function main() {
   const now = new Date();
-  const dateLabel = now.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" });
   const outDir = path.join("out", now.toISOString().slice(0, 10));
 
   console.log("RSS çekiliyor…");
@@ -45,18 +39,18 @@ async function main() {
   }
 
   console.log("Render…");
-  const pages = [
-    coverHtml(stories[0], dateLabel, useImages),
-    ...stories.map((s, i) => newsHtml(s, i + 1, stories.length, dateLabel, useImages)),
-  ];
-  const files = await renderSlides(pages, outDir);
+  const files = await renderSlides([digestHtml(stories, now)], outDir);
 
-  await writeFile(path.join(outDir, "caption.txt"), buildCaption(stories, dateLabel));
+  const caption = buildCaption(stories, now);
+  if (caption.length > 2200) console.warn(`  ! caption ${caption.length} karakter, Instagram sınırı 2200`);
+  await writeFile(path.join(outDir, "caption.txt"), caption);
   await writeFile(path.join(outDir, "stories.json"), JSON.stringify(stories, null, 2));
-  console.log(`Bitti: ${files.length} slayt → ${outDir}/`);
+  console.log(`Bitti: ${files.map((f) => path.basename(f)).join(", ")} → ${outDir}/`);
 }
 
-main().then(() => process.exit(0)).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

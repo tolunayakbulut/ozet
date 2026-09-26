@@ -24,10 +24,10 @@ const STOPWORDS = new Set(
 );
 
 const CATEGORY_KEYWORDS: [Category, RegExp][] = [
-  ["spor", /\b(maç|gol|lig|futbol|basketbol|voleybol|galatasaray|fenerbahçe|beşiktaş|trabzonspor|milli takım|şampiyon|teknik direktör|transfer)/i],
-  ["ekonomi", /\b(dolar|euro|faiz|enflasyon|borsa|bist|merkez bankası|ihracat|ithalat|piyasa|asgari ücret|vergi|altın|büyüme|tcmb)/i],
-  ["teknoloji", /\b(yapay zeka|teknoloji|uzay|nasa|apple|google|yazılım|siber|uydu|robot|bilim)/i],
-  ["dunya", /\b(abd|trump|rusya|ukrayna|israil|gazze|iran|çin|avrupa|nato|bm|almanya|fransa|ingiltere|suriye)/i],
+  ["spor", /(?<!\p{L})(maç|gol|lig|futbol|basketbol|voleybol|galatasaray|fenerbahçe|beşiktaş|trabzonspor|milli takım|şampiyon|teknik direktör|transfer)/iu],
+  ["ekonomi", /(?<!\p{L})(dolar|euro|faiz|enflasyon|borsa|bist|merkez bankası|ihracat|ithalat|piyasa|asgari ücret|vergi|altın|büyüme|tcmb)/iu],
+  ["teknoloji", /(?<!\p{L})(yapay zeka|teknoloji|uzay|nasa|apple|google|yazılım|siber|uydu|robot|bilim)/iu],
+  ["dunya", /(?<!\p{L})(abd|trump|rusya|ukrayna|israil|gazze|iran|çin|avrupa|nato|bm|almanya|fransa|ingiltere|suriye)/iu],
 ];
 
 function tokens(text: string): Set<string> {
@@ -117,8 +117,8 @@ export function selectHeuristic(articles: Article[], count: number): Story[] {
     const rep = representative(c);
     out.push({
       ...toStory(c, cat),
-      title: shorten(rep.title, 80),
-      summary: shorten(rep.summary || rep.title, 220),
+      title: shorten(rep.title, 90),
+      summary: shorten(rep.summary || rep.title, 180),
     });
   }
   return out;
@@ -140,7 +140,9 @@ Sana son 24 saatin haberleri, aynı olayı anlatanlar kümelenmiş halde veriliy
 Görevin:
 - Günün en önemli olaylarını seç. Kategori çeşitliliği gözet (gündem, ekonomi, dünya, spor, teknoloji) ama önemi feda etme.
 - Magazin, reklam, burç, tekrar eden rutin duyuruları seçme.
-- Her olay için kısa bir başlık (en fazla 60 karakter) ve 2 cümlelik bir özet (en fazla 220 karakter) yaz.
+- Her olay için:
+  - title: olayı tek başına anlatan, bilgi veren tek cümle (en fazla 90 karakter). Okuyan sadece bunu okuyup ne olduğunu anlamalı. Örnek: "FIFA, Fenerbahçe'ye üç dönem transfer yasağı verdi". Tık tuzağı, soru, alıntı başlığı yok.
+  - summary: başlıkta olmayan en önemli ek bilgiyi veren 1-2 cümle (en fazla 180 karakter).
 - Sadece verilen metne dayan. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kaynak metni kopyalama.
 - Tarafsız ve sade dil kullan; yorum ekleme.
 - İlk sıradaki haber günün manşeti olacak.`;

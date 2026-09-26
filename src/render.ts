@@ -3,8 +3,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
- * Renders each HTML page to a 1080x1350 JPEG. Elements marked `.fit` shrink their
- * font size until the text no longer overflows (down to `data-min` px).
+ * Renders each HTML page to a 1080x1350 JPEG. Elements marked `.fit` shrink until
+ * their content no longer overflows: via the CSS variable named in `data-var` if
+ * set, otherwise via font-size, down to `data-min` px.
  */
 export async function renderSlides(pages: string[], outDir: string): Promise<string[]> {
   await mkdir(outDir, { recursive: true });
@@ -20,16 +21,19 @@ export async function renderSlides(pages: string[], outDir: string): Promise<str
         const stuck: string[] = [];
         for (const el of document.querySelectorAll<HTMLElement>(".fit")) {
           const min = Number(el.dataset.min ?? 20);
-          let size = parseFloat(getComputedStyle(el).fontSize);
+          const cssVar = el.dataset.var;
+          const style = getComputedStyle(el);
+          let size = parseFloat(cssVar ? style.getPropertyValue(cssVar) : style.fontSize);
           while (el.scrollHeight > el.clientHeight + 8 && size > min) {
-            size -= 2;
-            el.style.fontSize = `${size}px`;
+            size -= 1;
+            if (cssVar) el.style.setProperty(cssVar, `${size}px`);
+            else el.style.fontSize = `${size}px`;
           }
-          if (el.scrollHeight > el.clientHeight + 8) stuck.push(el.textContent?.slice(0, 40) ?? "");
+          if (el.scrollHeight > el.clientHeight + 8) stuck.push(el.textContent?.trim().slice(0, 40) ?? "");
         }
         return stuck;
       });
-      if (overflow.length) console.warn(`  ! slayt ${i + 1}: metin hâlâ taşıyor: ${overflow.join(" | ")}`);
+      if (overflow.length) console.warn(`  ! sayfa ${i + 1}: metin hâlâ taşıyor: ${overflow.join(" | ")}`);
       const file = path.join(outDir, `${String(i + 1).padStart(2, "0")}.jpg`);
       await page.screenshot({ path: file, type: "jpeg", quality: 92 });
       await writeFile(file.replace(/\.jpg$/, ".html"), html);
