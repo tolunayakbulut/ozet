@@ -84,8 +84,8 @@ function isoWeek(ymd: string): number {
 }
 
 /**
- * X experiment, alternating weekly: even weeks post the image plus a per-story detail thread,
- * odd weeks post the video plus one reply with sources. Logs {mode, id} to x.json for metrics.
+ * X experiment, alternating weekly: even weeks post the image, odd weeks the video; both get a
+ * per-story detail thread. Logs {mode, id} to x.json for metrics.
  */
 async function x(image: Buffer, stories: Story[], title: string) {
   const client = new TwitterApi({
@@ -106,14 +106,12 @@ async function x(image: Buffer, stories: Story[], title: string) {
     const video = await readFile(path.join(dir, "video.mp4"));
     const mediaId = await client.v2.uploadMedia(video, { media_type: "video/mp4", media_category: "tweet_video" });
     root = (await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } })).data.id;
-    const sources = [...new Set(stories.flatMap((s) => s.sources))].join(", ");
-    await client.v2.reply(`Kaynaklar: ${sources}\nHer akşam 20:00'de günün manşetleri · @ozetmanset`.slice(0, 280), root);
   } else {
     const mediaId = await client.v2.uploadMedia(image, { media_type: "image/jpeg", media_category: "tweet_image" });
     root = (await client.v2.tweet({ text: tweetText(stories, title), media: { media_ids: [mediaId] } })).data.id;
-    let parent = root;
-    for (const text of threadTexts(stories)) parent = (await client.v2.reply(text, parent)).data.id;
   }
+  let parent = root;
+  for (const text of threadTexts(stories)) parent = (await client.v2.reply(text, parent)).data.id;
   await writeFile(path.join(dir, "x.json"), JSON.stringify({ date, mode, id: root }) + "\n");
   return `${mode} ${root}`;
 }
