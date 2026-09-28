@@ -1,15 +1,69 @@
 name: daily
 
+# Triggers (any one is enough; published/<date> on the images branch keeps it to one post a day):
+# - cron-job.org at 19:40 Istanbul: workflow_dispatch with inputs.auto=true (primary, on time)
+# - GitHub cron below: backup, since Actions schedules can run hours late or not at all
+# - manual "Run workflow": publishes immediately, still skipped if today is already published
 on:
   schedule:
-    - cron: "15 16 * * *" # 19:15 Istanbul; start early since Actions cron can run late, publish waits for 20:00
+    - cron: "15 16 * * *" # 19:15 Istanbul
+    - cron: "7 17,18,19 * * *" # 20:07, 21:07, 22:07 Istanbul: fallbacks, no-op if already published
   workflow_dispatch:
+    inputs:
+      auto:
+        description: "Automatic trigger: wait until 20:00, skip outside the evening window"
+        type: boolean
+        default: false
+      force:
+        description: "Publish even if today is already published (posts again!)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+# Runs never overlap: a second trigger waits, then sees the published marker and skips.
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+      auto: ${{ steps.check.outputs.auto }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: images
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: published/
+          sparse-checkout-cone-mode: false # cone mode would also download every root-level image/video
+
+      - name: Already published today?
+        id: check
+        env:
+          AUTO: ${{ github.event_name == 'schedule' || github.event.inputs.auto == 'true' }}
+          FORCE: ${{ github.event.inputs.force == 'true' }}
+        run: |
+          DATE=$(date -u +%F)
+          echo "auto=$AUTO" >> "$GITHUB_OUTPUT"
+          SKIP=false
+          if [ -e "published/$DATE" ] && [ "$FORCE" != true ]; then
+            echo "::notice::$DATE already published ($(cat "published/$DATE")), skipping"
+            SKIP=true
+          elif [ "$AUTO" = true ] && [ "$(date -u +%-H)" -lt 16 ]; then
+            # A scheduled run that slipped past midnight UTC would publish the next day's post early.
+            echo "::notice::Automatic run outside the 19:00-03:00 Istanbul window, skipping"
+            SKIP=true
+          fi
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+
   run:
+    needs: check
+    if: needs.check.outputs.skip != 'true'
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Istanbul
@@ -43,12 +97,30 @@ jobs:
           echo "url=$BASE/$DATE.jpg" >> "$GITHUB_OUTPUT"
           echo "video=$BASE/$DATE.mp4" >> "$GITHUB_OUTPUT"
 
-      - name: Wait until 20:00 Istanbul (scheduled runs only)
-        if: github.event_name == 'schedule'
+      - name: Wait until 20:00 Istanbul (automatic runs only)
+        if: needs.check.outputs.auto == 'true'
         run: |
           TARGET=$(date -u -d "17:00" +%s)
           NOW=$(date -u +%s)
           if [ "$NOW" -lt "$TARGET" ]; then sleep $((TARGET - NOW)); fi
+
+      # Marked before publishing, not after: a partly failed publish must not be retried by the
+      # fallback triggers, or the platforms that succeeded would get the post twice.
+      - name: Mark today as published
+        env:
+          FORCE: ${{ github.event.inputs.force == 'true' }}
+        run: |
+          DATE=$(date -u +%F)
+          git -C /tmp/images pull -q --rebase origin images
+          if [ -e "/tmp/images/published/$DATE" ] && [ "$FORCE" != true ]; then
+            echo "::error::$DATE was published by another run in the meantime"
+            exit 1
+          fi
+          mkdir -p /tmp/images/published
+          echo "run ${{ github.run_id }} (${{ github.event_name }})" > "/tmp/images/published/$DATE"
+          git -C /tmp/images add published
+          git -C /tmp/images commit -qm "published $DATE"
+          git -C /tmp/images push -q origin images
 
       - name: Publish
         run: npm run publish -- "$(date -u +%F)"
