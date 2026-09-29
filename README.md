@@ -31,7 +31,26 @@ npm start
 
 ## Otomatik yayın (GitHub Actions)
 
-`.github/workflows/daily.yml` her gün 19:30'da (İstanbul) çalışır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e paylaşır. X'te haftalık deney: çift ISO haftası görsel + detay zinciri, tek hafta video + kaynak yanıtı; gönderi id'leri ve ertesi gün metrikleri `images` branch'inde `data/x/` altında (`src/x-metrics.ts`). Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow.
+`.github/workflows/daily.yml` her akşam 20:00'de (İstanbul) paylaşır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e paylaşır. X'te haftalık deney: çift ISO haftası görsel + detay zinciri, tek hafta video + kaynak yanıtı; gönderi id'leri ve ertesi gün metrikleri `images` branch'inde `data/x/` altında (`src/x-metrics.ts`). Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow (beklemeden hemen paylaşır).
+
+Tetikleme ve tek paylaşım garantisi:
+
+- **cron-job.org (asıl):** her gün 19:40 İstanbul'da `workflow_dispatch` çağırır, iş akışı 20:00'yi bekleyip paylaşır. GitHub'ın kendi cron'u saatlerce gecikebildiği ya da hiç çalışmayabildiği için asıl tetikleyici bu.
+- **GitHub cron (yedek):** 19:15, 20:07, 21:07, 22:07 İstanbul. O gün paylaşıldıysa saniyeler içinde hiçbir şey yapmadan biter.
+- **Tek paylaşım:** paylaşımdan hemen önce `images` branch'ine `published/<tarih>` işareti yazılır. İşaret varsa sonraki her tetikleme (elle dahil) atlanır. Çalıştırmalar aynı anda koşmaz (`concurrency`). Paylaşım yarıda hata verirse otomatik tekrar denenmez, çünkü başarılı olan platformlara ikinci kez gider. Düzeltip yeniden paylaşmak için: Run workflow → `force` işaretli.
+- **Baskı tarihi:** klasör, görsel/video/caption'daki tarih ve işaret aynı günü kullanır. 06:00'dan önceki çalıştırma bir önceki akşamın baskısıdır. Yani gece yarısını geçen geç bir paylaşım yarının tarihiyle çıkmaz, yarının paylaşımını da engellemez.
+- Otomatik tetiklemeler 19:00–03:00 İstanbul dışında atlanır.
+
+cron-job.org kurulumu:
+
+1. GitHub → Settings → Developer settings → Fine-grained tokens → yalnızca `ozet` reposu, Permissions → Actions: **Read and write**.
+2. cron-job.org → Create cronjob:
+   - URL: `https://api.github.com/repos/tolunayakbulut/ozet/actions/workflows/daily.yml/dispatches`
+   - Schedule: her gün 19:40, saat dilimi Europe/Istanbul
+   - Advanced → Request method `POST`, headers: `Accept: application/vnd.github+json`, `Authorization: Bearer <token>`, `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`
+   - Request body: `{"ref":"main","inputs":{"auto":"true"}}`
+   - Notifications: başarısız çalıştırmada e-posta (başarılı yanıt `204`)
+3. Token'ın süresi dolunca yenile. Dolarsa da GitHub cron yedekleri çalışmaya devam eder.
 
 Repo secrets (Settings → Secrets and variables → Actions):
 
