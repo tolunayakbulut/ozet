@@ -38,7 +38,8 @@ Tetikleme ve tek paylaşım garantisi:
 - **cron-job.org (asıl):** her gün 19:40 İstanbul'da `workflow_dispatch` çağırır, iş akışı 20:00'yi bekleyip paylaşır. GitHub'ın kendi cron'u saatlerce gecikebildiği ya da hiç çalışmayabildiği için asıl tetikleyici bu.
 - **GitHub cron (yedek):** 19:15, 20:07, 21:07, 22:07 İstanbul. O gün paylaşıldıysa saniyeler içinde hiçbir şey yapmadan biter.
 - **Tek paylaşım:** paylaşımdan hemen önce `images` branch'ine `published/<tarih>` işareti yazılır. İşaret varsa sonraki her tetikleme (elle dahil) atlanır. Çalıştırmalar aynı anda koşmaz (`concurrency`). Paylaşım yarıda hata verirse otomatik tekrar denenmez, çünkü başarılı olan platformlara ikinci kez gider. Düzeltip yeniden paylaşmak için: Run workflow → `force` işaretli.
-- Otomatik tetiklemeler 19:00–03:00 İstanbul dışında atlanır (gece yarısını geçen gecikmiş bir cron ertesi günün paylaşımını erkenden yapmasın diye).
+- **Baskı tarihi:** klasör, görsel/video/caption'daki tarih ve işaret aynı günü kullanır. 06:00'dan önceki çalıştırma bir önceki akşamın baskısıdır. Yani gece yarısını geçen geç bir paylaşım yarının tarihiyle çıkmaz, yarının paylaşımını da engellemez.
+- Otomatik tetiklemeler 19:00–03:00 İstanbul dışında atlanır.
 
 cron-job.org kurulumu:
 

@@ -13,6 +13,16 @@ const forceHeuristic = process.argv.includes("--no-llm");
 
 const CAPTION_LIMIT = 2200;
 
+/**
+ * Edition date (YYYY-MM-DD, Istanbul). A run before 06:00 still belongs to the previous evening,
+ * so a late run doesn't label its post with tomorrow's date. The workflow passes EDITION_DATE so
+ * the output folder, the labels and the published marker all use the same day.
+ */
+function editionDate(): string {
+  if (process.env.EDITION_DATE) return process.env.EDITION_DATE;
+  return new Date(Date.now() - 6 * 3600_000).toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
+}
+
 function trimTo(text: string, max: number): string {
   return text.length <= max ? text : text.slice(0, text.lastIndexOf(" ", max - 1)) + "…";
 }
@@ -38,8 +48,10 @@ function buildCaption(stories: Story[], date: Date): string {
 }
 
 async function main() {
-  const now = new Date();
-  const outDir = path.join("out", now.toISOString().slice(0, 10));
+  const edition = editionDate();
+  // Noon Istanbul (UTC+3, no DST) keeps the labels on the edition day in any local time zone.
+  const now = new Date(`${edition}T12:00:00+03:00`);
+  const outDir = path.join("out", edition);
 
   console.log("RSS çekiliyor…");
   const articles = await fetchAll(24);
