@@ -36,6 +36,7 @@ function buildCaption(stories: Story[], date: Date): string {
   const build = (detailMax: number) =>
     [
       `Özet Manşet · ${dateLabel}`,
+      "👇 Sence bugünün en önemli haberi hangisi? Numarasını yorumlara yaz.",
       ...stories.map(
         (s, i) => `${i + 1}. ${s.title}\n${trimTo(s.summary, detailMax)}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
       ),

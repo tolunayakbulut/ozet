@@ -96,6 +96,7 @@ function videoOverlays(date: Date): string {
   <div class="outro">
     ${mark}
     <div class="oword">${BRAND}</div>
+    <div class="oask">Sence bugünün en önemli haberi hangisi?<br><b>Numarasını yorumlara yaz</b></div>
     <div class="otime">Her akşam <b>20:00</b>'de günün manşetleri</div>
     <div class="ofollow">Takip et · ${HANDLE}</div>
   </div>`;
@@ -169,6 +170,9 @@ footer { animation: fadeUp 0.6s ${EASE_OUT} ${(after + 0.4).toFixed(2)}s both; }
 .oword { font-size: 56px; font-weight: 700; letter-spacing: 0.28em; animation: fadeUp 0.6s ${EASE_OUT} ${(o + 1.3).toFixed(2)}s both; }
 .otime { font-size: 38px; font-weight: 500; color: #D8D0C0; animation: fadeUp 0.6s ${EASE_OUT} ${(o + 1.6).toFixed(2)}s both; }
 .otime b { color: #F4EFE6; }
+.oask { margin: 8px 80px; padding: 28px 40px; border: 3px solid ${BRAND_RED}; border-radius: 28px; text-align: center;
+  font-size: 40px; font-weight: 500; line-height: 1.35; color: #F4EFE6; animation: fadeUp 0.6s ${EASE_OUT} ${(o + 1.45).toFixed(2)}s both; }
+.oask b { color: ${BRAND_RED}; font-weight: 800; }
 .ofollow { margin-top: 20px; padding: 22px 48px; border-radius: 999px; background: ${BRAND_RED}; color: #fff; font-size: 36px; font-weight: 700;
   animation: fadeUp 0.6s ${EASE_OUT} ${(o + 1.9).toFixed(2)}s both, pulse 1.2s ease-in-out ${(o + 2.6).toFixed(2)}s 2; }
 `;
