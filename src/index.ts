@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fetchAll } from "./fetch.ts";
 import { selectHeuristic, selectWithClaude, type Story } from "./select.ts";
-import { DEFAULT_THEME, digestHtml } from "./templates.ts";
+import { DEFAULT_THEME, digestHtml, headlineCardHtml } from "./templates.ts";
 import { renderVideo, videoCues } from "./video.ts";
 import { renderSlides } from "./render.ts";
 import { CATEGORY_LABEL } from "./feeds.ts";
@@ -27,6 +27,41 @@ function trimTo(text: string, max: number): string {
   return text.length <= max ? text : text.slice(0, text.lastIndexOf(" ", max - 1)) + "…";
 }
 
+const CATEGORY_TAGS: Record<Story["category"], string[]> = {
+  gundem: ["#türkiye", "#gündem"],
+  ekonomi: ["#ekonomi", "#borsa", "#piyasa"],
+  dunya: ["#dünya", "#dünyahaberleri"],
+  spor: ["#spor", "#futbol"],
+  teknoloji: ["#teknoloji", "#bilim"],
+};
+
+/** Proper-noun hashtags from a title: capitalized words after the first, Turkish suffix after the apostrophe dropped. */
+function titleTags(title: string, max = 3): string[] {
+  const words = title.split(/\s+/).slice(1).map((w) => w.replace(/['’].*$/, "").replace(/[^\p{L}\p{N}]/gu, ""));
+  const tags = words.filter((w) => w.length > 2 && /^\p{Lu}/u.test(w)).map((w) => `#${w.toLocaleLowerCase("tr-TR")}`);
+  return [...new Set(tags)].slice(0, max);
+}
+
+function hashtags(stories: Story[], extra: string[] = []): string {
+  const tags = ["#ozetmanset", "#haber", "#sondakika", ...extra, ...stories.flatMap((s) => CATEGORY_TAGS[s.category])];
+  return [...new Set(tags)].slice(0, 15).join(" ");
+}
+
+/** Headline-card days (getUTCDay of the noon edition time): Monday, Wednesday, Friday. */
+const HEADLINE_CARD_DAYS = [1, 3, 5];
+
+function headlineCaption(s: Story, date: Date): string {
+  const dateLabel = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  return [
+    `★ GÜNÜN MANŞETİ · ${dateLabel}`,
+    s.title,
+    trimTo(s.summary, 600),
+    `(Kaynak ve fotoğraf: ${s.sources.slice(0, 3).join(", ")})`,
+    "👇 Sen ne düşünüyorsun? Yorumlara yaz.\nGünün tüm manşetleri bir önceki postta.",
+    hashtags([s], titleTags(s.title, 5)),
+  ].join("\n\n");
+}
+
 /**
  * Image carries headlines only; the caption carries a short detail and sources per item.
  * Details are trimmed evenly until the caption fits Instagram's limit.
@@ -40,7 +75,7 @@ function buildCaption(stories: Story[], date: Date): string {
       ...stories.map(
         (s, i) => `${i + 1}. ${s.title}\n${trimTo(s.summary, detailMax)}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
       ),
-      "@ozetmanset · Her akşam günün manşetleri\n#ozetmanset #gündem #haber",
+      `@ozetmanset · Her akşam günün manşetleri\n${hashtags(stories, titleTags(stories.find((s) => s.top)?.title ?? ""))}`,
     ].join("\n\n");
   let detailMax = 250;
   let caption = build(detailMax);
@@ -81,7 +116,11 @@ async function main() {
   }
 
   console.log("Render…");
-  const files = await renderSlides([digestHtml(stories, now, quotes)], outDir);
+  // Some days the top story (if it has a photo) also gets its own big photo card as a second feed post (02.jpg).
+  const top = stories.find((s) => s.top);
+  const card = top?.image && HEADLINE_CARD_DAYS.includes(now.getUTCDay()) ? top : undefined;
+  const files = await renderSlides([digestHtml(stories, now, quotes), ...(card ? [headlineCardHtml(card, now)] : [])], outDir);
+  if (card) await writeFile(path.join(outDir, "manset.txt"), headlineCaption(card, now));
   // video.mp4: animated 9:16 version with music, used for the Instagram story and Reels.
   console.log("Video…");
   files.push(

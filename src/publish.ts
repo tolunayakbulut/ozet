@@ -9,6 +9,7 @@ import type { Story } from "./select.ts";
  *
  * Instagram: IG_USER_ID, IG_ACCESS_TOKEN (Facebook Page token), IMAGE_URL (public URL of the image),
  *            VIDEO_URL (optional, public URL of the 9:16 MP4 -> story + Reels)
+ *            MANSET_URL (optional, public URL of 02.jpg -> separate "günün manşeti" post with manset.txt)
  * Facebook:  FB_PAGE_ID, IG_ACCESS_TOKEN (same Page token, needs pages_manage_posts), IMAGE_URL
  * X:         X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
  *            X_REPLY_TO (optional): skip the image post and only add the detail thread under this tweet
@@ -121,9 +122,16 @@ async function main() {
   const caption = await readFile(path.join(dir, "caption.txt"), "utf8");
   const stories = JSON.parse(await readFile(path.join(dir, "stories.json"), "utf8")) as Story[];
   const title = caption.split("\n")[0];
+  const mansetCaption = await readFile(path.join(dir, "manset.txt"), "utf8").catch(() => "");
 
   const platforms: [string, boolean, () => Promise<unknown>][] = [
     ["Instagram", Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.IMAGE_URL), () => instagram({ image_url: env.IMAGE_URL!, caption })],
+    [
+      "Instagram manşet",
+      Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.MANSET_URL && mansetCaption),
+      // Posted after the list so it sits on top of the profile grid.
+      () => instagram({ image_url: env.MANSET_URL!, caption: mansetCaption }),
+    ],
     [
       "Instagram hikâye",
       Boolean(env.IG_USER_ID && env.IG_ACCESS_TOKEN && env.VIDEO_URL),

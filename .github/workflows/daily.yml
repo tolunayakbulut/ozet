@@ -96,10 +96,12 @@ jobs:
           git worktree add /tmp/images images
           cp "out/$DATE/01.jpg" "/tmp/images/$DATE.jpg"
           cp "out/$DATE/video.mp4" "/tmp/images/$DATE.mp4"
+          [ -f "out/$DATE/02.jpg" ] && cp "out/$DATE/02.jpg" "/tmp/images/$DATE-manset.jpg"
           git -C /tmp/images add . && git -C /tmp/images commit -m "$DATE" && git -C /tmp/images push origin images
           BASE="https://raw.githubusercontent.com/${{ github.repository }}/images"
           echo "url=$BASE/$DATE.jpg" >> "$GITHUB_OUTPUT"
           echo "video=$BASE/$DATE.mp4" >> "$GITHUB_OUTPUT"
+          if [ -f "out/$DATE/02.jpg" ]; then echo "manset=$BASE/$DATE-manset.jpg" >> "$GITHUB_OUTPUT"; fi
 
       - name: Wait until 20:00 Istanbul (automatic runs only)
         if: needs.check.outputs.auto == 'true'
@@ -131,6 +133,7 @@ jobs:
         env:
           IMAGE_URL: ${{ steps.image.outputs.url }}
           VIDEO_URL: ${{ steps.image.outputs.video }}
+          MANSET_URL: ${{ steps.image.outputs.manset }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}

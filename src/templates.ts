@@ -271,6 +271,48 @@ ${video ? videoCss(stories.length) : ""}
 </body></html>`;
 }
 
+/**
+ * "Günün manşeti" card: the top story alone, big, over its news photo (1080x1350).
+ */
+export function headlineCardHtml(s: Story, date: Date): string {
+  const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  const color = COLORS[s.category];
+  const summary = s.summary.length > 220 ? `${s.summary.slice(0, 217).replace(/\s+\S*$/, "")}…` : s.summary;
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=block');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1080px; height: 1350px; }
+body { font-family: 'Inter', sans-serif; background: ${INK}; color: #F4EFE6; position: relative; overflow: hidden; }
+.serif { font-family: 'Fraunces', serif; }
+${LOGO_CSS}
+.photo { position: absolute; inset: 0 0 auto 0; height: 860px; background: ${INK} center / cover no-repeat; background-image: url("${esc(s.image ?? "")}"); }
+.photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22,20,15,.55) 0%, rgba(22,20,15,0) 22%, rgba(22,20,15,0) 45%, ${INK} 100%); }
+.top .logo { box-shadow: 0 0 0 2px rgba(244,239,230,.35); }
+.top { position: absolute; top: 56px; left: 72px; right: 72px; display: flex; justify-content: space-between; align-items: center; z-index: 1; }
+.brandrow { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 700; letter-spacing: 0.22em; }
+.day { font-size: 24px; font-weight: 600; }
+.body { position: absolute; left: 72px; right: 72px; bottom: 64px; top: 560px; display: flex; flex-direction: column; justify-content: flex-end; gap: 26px; z-index: 1; }
+.tags { display: flex; gap: 12px; }
+.tag { padding: 8px 18px; border-radius: 999px; font-size: 20px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.tag.main { background: ${BRAND_RED}; color: #fff; }
+.tag.cat { background: ${color}; color: #fff; }
+h1 { --h: 78px; font-size: var(--h); font-weight: 800; line-height: 1.04; letter-spacing: -0.02em; max-height: 420px; overflow: hidden; }
+h1 mark { background: none; color: ${color}; filter: brightness(1.4); }
+.sum { font-size: 28px; line-height: 1.4; color: #D8D0C0; }
+.foot { display: flex; justify-content: space-between; padding-top: 22px; border-top: 2px solid #3A352C; font-size: 19px; color: #9C9383; }
+.foot b { color: #F4EFE6; }
+</style></head><body>
+  <div class="photo"></div>
+  <div class="top"><div class="brandrow">${logoMark(44)}<span>${BRAND}</span></div><div class="day">${esc(day)}</div></div>
+  <div class="body">
+    <div class="tags"><span class="tag main">★ Günün manşeti</span><span class="tag cat">${CATEGORY_LABEL[s.category]}</span></div>
+    <h1 class="serif fit" data-var="--h" data-min="44">${headline(s)}</h1>
+    <p class="sum">${esc(summary)}</p>
+    <div class="foot"><span>Kaynak ve fotoğraf: ${esc(s.sources.slice(0, 2).join(", "))}</span><b>${HANDLE} · Günün tüm manşetleri profilde</b></div>
+  </div>
+</body></html>`;
+}
+
 /** Square profile picture / standalone logo page. */
 export function logoHtml(size = 1080): string {
   return `<!doctype html><html><head><meta charset="utf-8"><style>
