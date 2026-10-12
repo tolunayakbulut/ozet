@@ -299,8 +299,8 @@ ${LOGO_CSS}
 h1 { --h: 78px; font-size: var(--h); font-weight: 800; line-height: 1.04; letter-spacing: -0.02em; max-height: 420px; overflow: hidden; }
 h1 mark { background: none; color: ${color}; filter: brightness(1.4); }
 .sum { font-size: 28px; line-height: 1.4; color: #D8D0C0; }
-.foot { display: flex; justify-content: space-between; padding-top: 22px; border-top: 2px solid #3A352C; font-size: 19px; color: #9C9383; }
-.foot b { color: #F4EFE6; }
+.foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; padding-top: 22px; border-top: 2px solid #3A352C; font-size: 19px; color: #9C9383; }
+.foot b { color: #F4EFE6; white-space: nowrap; }
 </style></head><body>
   <div class="photo"></div>
   <div class="top"><div class="brandrow">${logoMark(44)}<span>${BRAND}</span></div><div class="day">${esc(day)}</div></div>
@@ -308,7 +308,7 @@ h1 mark { background: none; color: ${color}; filter: brightness(1.4); }
     <div class="tags"><span class="tag main">★ Günün manşeti</span><span class="tag cat">${CATEGORY_LABEL[s.category]}</span></div>
     <h1 class="serif fit" data-var="--h" data-min="44">${headline(s)}</h1>
     <p class="sum">${esc(summary)}</p>
-    <div class="foot"><span>Kaynak ve fotoğraf: ${esc(s.sources.slice(0, 2).join(", "))}</span><b>${HANDLE} · Günün tüm manşetleri profilde</b></div>
+    <div class="foot"><span>Kaynak ve fotoğraf: ${esc(s.sources.slice(0, 3).join(", "))}</span><b>${HANDLE} · Günün tüm manşetleri profilde</b></div>
   </div>
 </body></html>`;
 }
