@@ -29,6 +29,12 @@ npm start
 - `src/video.ts` — 16 sn 9:16 animasyonlu video (Playwright kareleri + ffmpeg), sentezlenmiş telifsiz müzik
 - `src/render.ts` — Playwright render, taşan metni küçültme
 
+## Tarihte Bugün
+
+`npm run history` → `out/history/<tarih>/`: Vikipedi'nin "tarihte bugün" listesinden (olaylar, doğumlar, ölümler; yalnızca Wikimedia Commons fotoğrafı olanlar) Claude Haiku tek madde seçer, başlık, 2-3 cümle detay ve yorum sorusu yazar (kaynakta olmayan sayı içeren cümle silinir). Çıktı: fotoğraflı kart `01.jpg` (1080×1350), animasyonlu 9:16 `video.mp4` (hikâye + Reels), `caption.txt`, `event.json`. `npm run publish-history -- <tarih>` Instagram (gönderi, hikâye, Reels), Facebook ve X'e paylaşır.
+
+`.github/workflows/history.yml` her gün 12:30'da (İstanbul) paylaşır; tetikleme `daily.yml` ile aynı düzende: cron-job.org 12:10'da `history.yml` için `workflow_dispatch` (`{"ref":"main","inputs":{"auto":"true"}}`), GitHub cron yedek. Tek paylaşım işareti `images` branch'inde `published-history/<tarih>`, görseller `history/` altında. Otomatik tetiklemeler 11:00–17:00 İstanbul dışında atlanır.
+
 ## Otomatik yayın (GitHub Actions)
 
 `.github/workflows/daily.yml` her akşam 20:00'de (İstanbul) paylaşır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e paylaşır. X'te haftalık deney: çift ISO haftası görsel + detay zinciri, tek hafta video + kaynak yanıtı; gönderi id'leri ve ertesi gün metrikleri `images` branch'inde `data/x/` altında (`src/x-metrics.ts`). Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow (beklemeden hemen paylaşır).

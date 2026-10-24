@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import ffmpegPath from "ffmpeg-static";
-import { TIMELINE, itemTimes } from "./templates.ts";
+import { HISTORY_TIMELINE, TIMELINE, itemTimes } from "./templates.ts";
 import type { Story } from "./select.ts";
 
 const FPS = 30;
@@ -36,6 +36,21 @@ export function videoCues(stories: Story[]): Cues {
     chimes: top >= 0 ? [ticks[top] + 0.7] : [],
     sting: T.outroStart + 1.9,
     bed: [T.introEnd - 0.3, T.outroStart + 0.4],
+  };
+}
+
+/** Sound cues matching the Tarihte Bugün motion timeline in templates.ts. */
+export function historyCues(): Cues {
+  const T = HISTORY_TIMELINE;
+  return {
+    total: T.total,
+    whooshes: [0, T.outroStart - 0.1],
+    hits: [T.year + 0.45, T.outroStart + 0.6],
+    pops: [T.question],
+    ticks: [T.title, T.detail],
+    chimes: [T.question + 0.3],
+    sting: T.outroStart + 1.6,
+    bed: [0.3, T.outroStart + 0.4],
   };
 }
 

@@ -1,6 +1,7 @@
 import { CATEGORY_LABEL, type Category } from "./feeds.ts";
 import type { Story } from "./select.ts";
 import type { Quote } from "./market.ts";
+import type { HistoryEvent } from "./onthisday.ts";
 
 export const BRAND = "ÖZET MANŞET";
 export const HANDLE = "@ozetmanset";
@@ -325,3 +326,125 @@ ${LOGO_CSS}
 </style></head><body>${logoMark(size)}</body></html>`;
 }
 
+
+/** Tarihte Bugün video timeline in seconds (shared with the sound design in video.ts). */
+export const HISTORY_TIMELINE = {
+  year: 1.0, // year drops in
+  title: 1.8,
+  detail: 2.8,
+  question: 7.5,
+  outroStart: 11.0,
+  total: 14.5,
+};
+
+/** Shared Tarihte Bugün layout: full-bleed photo on top, big year, title and detail below. */
+function historyCss(height: number, photoHeight: number): string {
+  return `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=block');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1080px; height: ${height}px; }
+body { font-family: 'Inter', sans-serif; background: ${INK}; color: #F4EFE6; position: relative; overflow: hidden; }
+.serif { font-family: 'Fraunces', serif; }
+${LOGO_CSS}
+.photo { position: absolute; inset: 0 0 auto 0; height: ${photoHeight}px; overflow: hidden; }
+.photo .img { position: absolute; inset: 0; background: ${INK} center 25% / cover no-repeat; }
+.photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22,20,15,.6) 0%, rgba(22,20,15,0) 20%, rgba(22,20,15,0) 50%, ${INK} 100%); }
+.top .logo { box-shadow: 0 0 0 2px rgba(244,239,230,.35); }
+.top { position: absolute; top: 56px; left: 72px; right: 72px; display: flex; justify-content: space-between; align-items: center; z-index: 1; }
+.brandrow { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 700; letter-spacing: 0.22em; }
+.tag { padding: 10px 22px; border-radius: 999px; background: ${BRAND_RED}; color: #fff; font-size: 22px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.body { position: absolute; left: 72px; right: 72px; display: flex; flex-direction: column; justify-content: flex-end; z-index: 1; }
+.body > * { flex: none; }
+.when { display: flex; align-items: baseline; gap: 24px; }
+.year { font-size: 190px; font-weight: 800; line-height: 0.9; color: ${BRAND_RED}; letter-spacing: -0.03em; }
+.day { font-size: 40px; font-weight: 600; color: #D8D0C0; }
+h1 { --h: 68px; font-size: var(--h); font-weight: 800; line-height: 1.06; letter-spacing: -0.015em; margin-top: 22px; overflow: hidden; }
+h1 mark { background: none; color: ${BRAND_RED}; filter: brightness(1.25); }
+.detail { font-size: 29px; line-height: 1.42; color: #D8D0C0; margin-top: 22px; overflow: hidden; }
+.foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; margin-top: 28px; padding-top: 22px; border-top: 2px solid #3A352C; font-size: 19px; color: #9C9383; }
+.foot b { color: #F4EFE6; white-space: nowrap; }
+`;
+}
+
+function historyTitle(e: HistoryEvent): string {
+  const i = e.highlight ? e.title.indexOf(e.highlight) : -1;
+  if (i < 0) return esc(e.title);
+  const end = i + e.highlight!.length;
+  return `${esc(e.title.slice(0, i))}<mark>${esc(e.title.slice(i, end))}</mark>${esc(e.title.slice(end))}`;
+}
+
+const historyDay = (date: Date) => date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+
+/** 1080x1350 Tarihte Bugün feed card. `photo` is a data URI so rendering never depends on hotlinking. */
+export function historyCardHtml(e: HistoryEvent, photo: string, date: Date): string {
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+${historyCss(1350, 820)}
+.body { top: 480px; bottom: 64px; }
+h1 { max-height: 300px; }
+.detail { max-height: 210px; }
+</style></head><body>
+  <div class="photo"><div class="img" style="background-image:url('${photo}')"></div></div>
+  <div class="top"><div class="brandrow">${logoMark(44)}<span>${BRAND}</span></div><span class="tag">Tarihte bugün</span></div>
+  <div class="body">
+    <div class="when"><span class="year serif">${e.year}</span><span class="day">${esc(historyDay(date))}</span></div>
+    <h1 class="serif fit" data-var="--h" data-min="40">${historyTitle(e)}</h1>
+    <p class="detail fit" data-min="22">${esc(e.detail)}</p>
+    <div class="foot"><span>Kaynak: Vikipedi · Görsel: Wikimedia Commons</span><b>${HANDLE} · Her gün tarihte bugün</b></div>
+  </div>
+</body></html>`;
+}
+
+/**
+ * Animated 1080x1920 Tarihte Bugün video for the story and Reels: slow zoom on the photo, the year
+ * drops in, title and detail rise, then the question and a follow outro. Text stays clear of the
+ * top ~200px and bottom ~380px that the Instagram story/Reels UI covers. Delays are absolute times
+ * on HISTORY_TIMELINE (frames are captured by pausing every animation, see video.ts).
+ */
+export function historyVideoHtml(e: HistoryEvent, photo: string, date: Date): string {
+  const T = HISTORY_TIMELINE;
+  const o = T.outroStart;
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+${historyCss(1920, 1180)}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes zoom { from { transform: scale(1); } to { transform: scale(1.14); } }
+@keyframes drop { 0% { opacity: 0; transform: translateY(-160px); } 60% { opacity: 1; transform: translateY(12px); } 80% { transform: translateY(-6px); } 100% { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes dropIn { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.photo .img { animation: zoom ${T.total}s linear 0s both; }
+.top { top: 200px; animation: fadeUp 0.6s ${EASE_OUT} 0.2s both; }
+.brandrow { font-size: 26px; } .brandrow .logo { --s: 52px !important; }
+.tag { font-size: 26px; }
+.body { top: 420px; bottom: 380px; }
+.year { font-size: 240px; animation: drop 0.8s ease-out ${T.year}s both; }
+.day { font-size: 48px; animation: fadeUp 0.6s ${EASE_OUT} ${T.year + 0.3}s both; }
+h1 { --h: 80px; max-height: 360px; animation: fadeUp 0.7s ${EASE_OUT} ${T.title}s both; }
+.detail { font-size: 34px; max-height: 300px; animation: fadeUp 0.7s ${EASE_OUT} ${T.detail}s both; }
+.ask { margin-top: 36px; padding: 26px 36px; border: 3px solid ${BRAND_RED}; border-radius: 28px;
+  font-size: 36px; font-weight: 600; line-height: 1.35; text-align: center; animation: pop 0.6s ${SPRING} ${T.question}s both; }
+.ask b { color: ${BRAND_RED}; }
+.outro { position: absolute; inset: 0; z-index: 10; background: ${INK}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px;
+  animation: dropIn 0.8s ${EASE_IN_OUT} ${o}s both; }
+.outro .logo { animation: pop 0.7s ${SPRING} ${o + 0.6}s both; }
+.oword { font-size: 56px; font-weight: 700; letter-spacing: 0.28em; animation: fadeUp 0.6s ${EASE_OUT} ${o + 1.0}s both; }
+.otime { font-size: 38px; font-weight: 500; color: #D8D0C0; text-align: center; line-height: 1.5; animation: fadeUp 0.6s ${EASE_OUT} ${o + 1.3}s both; }
+.otime b { color: #F4EFE6; }
+.ofollow { margin-top: 20px; padding: 22px 48px; border-radius: 999px; background: ${BRAND_RED}; color: #fff; font-size: 36px; font-weight: 700;
+  animation: fadeUp 0.6s ${EASE_OUT} ${o + 1.6}s both, pulse 1.2s ease-in-out ${o + 2.3}s 2; }
+</style></head><body>
+  <div class="photo"><div class="img" style="background-image:url('${photo}')"></div></div>
+  <div class="top"><div class="brandrow">${logoMark(52)}<span>${BRAND}</span></div><span class="tag">Tarihte bugün</span></div>
+  <div class="body">
+    <div class="when"><span class="year serif">${e.year}</span><span class="day">${esc(historyDay(date))}</span></div>
+    <h1 class="serif fit" data-var="--h" data-min="44">${historyTitle(e)}</h1>
+    <p class="detail fit" data-min="26">${esc(e.detail)}</p>
+    <div class="ask">${esc(e.question)}<br><b>👇 Yorumlara yaz</b></div>
+  </div>
+  <div class="outro">
+    ${logoMark(260)}
+    <div class="oword">${BRAND}</div>
+    <div class="otime">Her gün <b>12:30</b>'da tarihte bugün<br>Her akşam <b>20:00</b>'de günün manşetleri</div>
+    <div class="ofollow">Takip et · ${HANDLE}</div>
+  </div>
+</body></html>`;
+}
