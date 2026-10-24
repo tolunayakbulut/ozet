@@ -131,14 +131,15 @@ const Pick = z.object({
 const SYSTEM = `Türkçe bir haber hesabının "Tarihte Bugün" serisinin editörüsün. Her gün tek bir olay paylaşılıyor: büyük bir fotoğraf, yıl, kısa başlık ve 2-3 cümlelik detay.
 Sana Vikipedi'den bugünün tarihine ait olaylar, doğumlar ve ölümler veriliyor; hepsinin fotoğrafı var.
 Görevin:
-- Türkiye'deki geniş bir kitlenin en çok ilgisini çekecek, paylaşmak ve yorum yapmak isteyeceği TEK maddeyi seç. Türkiye tarihi, dünya tarihi, bilim ve icatlar, spor ve kültür eşit derecede uygun; çeşitlilik için her gün aynı türü seçme eğilimine girme.
-- Herkesin bildiği büyük olayları ve çok tanınmış kişileri tercih et. Az bilinen futbolcu, bürokrat ya da yerel siyasetçi doğum/ölümlerini seçme.
-- Bugün Türkiye'de siyasi kutuplaşma ya da etnik/dini tartışma yaratacak konuları, terör saldırılarını ve çok can kaybına yol açan felaketleri seçme.
+- Türkiye'deki geniş bir kitlenin en çok ilgisini çekecek, paylaşmak ve yorum yapmak isteyeceği TEK maddeyi seç. Takipçiler Türkiye gündemini takip eden bir haber hesabının takipçileri: Türkiye'nin kendi tarihinden, bugünle karşılaştırılabilen, "vay be" dedirten maddeleri seç (ilk kez/son kez olanlar, rekorlar, nüfus, ekonomi, sevilen isimler, spor).
+- Yabancı sanat, klasik müzik ve uzak ülkelerin iç olayları gibi takipçinin kendini ilişkilendiremeyeceği maddeleri seçme.
+- Herkesin bildiği olayları ve çok tanınmış kişileri tercih et. Az bilinen futbolcu, bürokrat ya da yerel siyasetçi doğum/ölümlerini seçme.
+- Bugün Türkiye'de siyasi kutuplaşma ya da etnik/dini tartışma yaratacak konuları (hâlâ siyasette olan kişiler ve partiler dahil), terör saldırılarını ve çok can kaybına yol açan felaketleri seçme.
 - Görsel paylaşım olduğu için fotoğraf olayın kendisini ya da kişiyi göstermeli. "Foto" satırındaki dosya adına bak: olayla ilgisiz ya da sıkıcı fotoğrafı (bina, harita, bayrak, logo, genel manzara) olan maddeyi seçme.
 - id: seçtiğin maddenin numarası.
 - title: olayı tek başına anlatan tek cümle (en fazla 80 karakter). En önemli kısmını köşeli parantezle işaretle: tam bir çift, EN FAZLA 3 kelime. Örnek: "Birleşmiş Milletler [resmen kuruldu]". Yılı başlığa yazma, ayrıca gösteriliyor.
-- detail: başlıkta olmayan ilginç bilgiyi veren 2-3 cümle (en fazla 260 karakter). Okuyan "bunu bilmiyordum" demeli.
-- question: takipçiyi yorum yapmaya davet eden kısa, merak uyandıran, herkesin cevap verebileceği bir soru (en fazla 70 karakter). Örnek: "Sence BM bugün işini yapabiliyor mu?" değil "Concorde'a binmek ister miydin?" gibi kolay ve eğlenceli olsun. Siyasi ya da ideolojik görüş sorma.
+- detail: başlıkta olmayan ilginç bilgiyi veren 2-3 cümle (en fazla 260 karakter). Okuyan "bunu bilmiyordum" demeli. Uygunsa bugünle bağ kur, ama yalnızca metinde olan bilgiyle.
+- question: takipçiyi yorum yapmaya davet eden kısa, merak uyandıran, herkesin cevap verebileceği bir soru (en fazla 70 karakter). Kolay ve eğlenceli olsun, bugünle karşılaştırmaya davet etsin. Örnek: "Sence bugün nüfusumuz kaç?", "Concorde'a binmek ister miydin?". Siyasi ya da ideolojik görüş sorma, kişinin kendisine siyasetçi gibi davranma.
 - tags: konuya özgü 2-3 Türkçe hashtag, # olmadan, boşluksuz, küçük harf. Örnek: ["uzay", "nasa"].
 - Yalnızca maddenin metnine ve özetine dayanarak yaz. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kopyalama. Tarafsız ve sade dil kullan.`;
 
@@ -155,7 +156,17 @@ function photoName(url: string): string {
   return file.replace(/^\d+px-/, "").replace(/\.\w+$/, "").replace(/_/g, " ");
 }
 
-export async function pickWithClaude(candidates: Candidate[]): Promise<HistoryEvent> {
+/** Mentions of Turkey, the Ottomans, Turkish cities, people or clubs in the item or the start of its page summary. */
+const TURKEY = /Türk|Osmanlı|Anadolu|İstanbul|Ankara|İzmir|Atatürk|Cumhuriyet|TBMM|Galatasaray|Fenerbahçe|Beşiktaş|Trabzonspor/;
+
+/** Turkey-related candidates only (also keeps the prompt small); everything if a day has too few. */
+export function turkeyFirst(candidates: Candidate[]): Candidate[] {
+  const tr = candidates.filter((c) => TURKEY.test(`${c.text} ${c.extract.slice(0, 150)}`));
+  return tr.length >= 3 ? tr : candidates;
+}
+
+export async function pickWithClaude(all: Candidate[]): Promise<HistoryEvent> {
+  const candidates = turkeyFirst(all);
   const input = candidates
     .map((c, i) => `#${i} [${c.kind}, ${c.year}] ${c.text}\n   Foto: ${photoName(c.imageUrl)}${c.extract ? `\n   Özet: ${trim(c.extract, c.kind === "olay" ? 250 : 110)}` : ""}`)
     .join("\n");
@@ -186,7 +197,7 @@ export async function pickWithClaude(candidates: Candidate[]): Promise<HistoryEv
     year: c.year,
     ...splitHighlight(p.title),
     detail: kept.join(" ").trim() || trim(c.extract, 260),
-    question: p.question,
+    question: unsupportedNumbers(p.question, c).length ? "Bu olayı biliyor muydun?" : p.question,
     tags: p.tags.map((t) => t.replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase("tr-TR")).filter(Boolean).slice(0, 3),
     imageUrl: c.imageUrl,
     page: c.page,
