@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fetchCandidates, photoDataUri, pickHeuristic, pickWithClaude, type HistoryEvent } from "./onthisday.ts";
 import { historyCardHtml, historyVideoHtml } from "./templates.ts";
@@ -39,8 +39,14 @@ async function main() {
   console.log("Vikipedi: tarihte bugün…");
   const candidates = await fetchCandidates(date);
   console.log(`  ${candidates.length} fotoğraflı aday`);
+  // history-picks.json: {"YYYY-MM-DD": "year or text"} pins the day's item (Claude still writes it).
+  const picks = JSON.parse(await readFile("history-picks.json", "utf8").catch(() => "{}")) as Record<string, string>;
+  const pick = picks[edition];
+  const pinned = pick ? candidates.filter((c) => String(c.year) === pick || c.text.includes(pick)) : [];
+  if (pick) console.log(pinned.length ? `  Seçili: ${pinned.map((c) => c.text).join(" | ")}` : `  ! "${pick}" adaylarda yok, normal seçim`);
+  const pool = pinned.length ? pinned : candidates;
   const useClaude = !forceHeuristic && Boolean(process.env.ANTHROPIC_API_KEY);
-  const event = useClaude ? await pickWithClaude(candidates) : pickHeuristic(candidates);
+  const event = useClaude ? await pickWithClaude(pool) : pickHeuristic(pool);
   console.log(`  ${event.year}: ${event.title}\n  ${event.detail}\n  ? ${event.question}\n  ${event.imageUrl}`);
 
   const photo = await photoDataUri(event.imageUrl);

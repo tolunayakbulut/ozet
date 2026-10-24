@@ -162,7 +162,7 @@ const TURKEY = /Türk|Osmanlı|Anadolu|İstanbul|Ankara|İzmir|Atatürk|Cumhuriy
 /** Turkey-related candidates only (also keeps the prompt small); everything if a day has too few. */
 export function turkeyFirst(candidates: Candidate[]): Candidate[] {
   const tr = candidates.filter((c) => TURKEY.test(`${c.text} ${c.extract.slice(0, 150)}`));
-  return tr.length >= 3 ? tr : candidates;
+  return tr.length >= 3 || tr.length === candidates.length ? tr : candidates;
 }
 
 export async function pickWithClaude(all: Candidate[]): Promise<HistoryEvent> {

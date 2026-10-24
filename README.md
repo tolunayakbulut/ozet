@@ -31,7 +31,7 @@ npm start
 
 ## Tarihte Bugün
 
-`npm run history` → `out/history/<tarih>/`: Vikipedi'nin "tarihte bugün" listesinden (olaylar, doğumlar, ölümler; yalnızca Wikimedia Commons fotoğrafı olanlar) Claude Haiku tek madde seçer, başlık, 2-3 cümle detay ve yorum sorusu yazar (kaynakta olmayan sayı içeren cümle silinir). Çıktı: fotoğraflı kart `01.jpg` (1080×1350), animasyonlu 9:16 `video.mp4` (hikâye + Reels), `caption.txt`, `event.json`. `npm run publish-history -- <tarih>` Instagram (gönderi, hikâye, Reels), Facebook ve X'e paylaşır.
+`npm run history` → `out/history/<tarih>/`: Vikipedi'nin "tarihte bugün" listesinden (olaylar, doğumlar, ölümler; yalnızca Wikimedia Commons fotoğrafı olanlar) Claude Haiku tek madde seçer, başlık, 2-3 cümle detay ve yorum sorusu yazar (kaynakta olmayan sayı içeren cümle silinir). Çıktı: fotoğraflı kart `01.jpg` (1080×1350), animasyonlu 9:16 `video.mp4` (hikâye + Reels), `caption.txt`, `event.json`. Bir günün maddesini sabitlemek için `history-picks.json`: `{"2026-10-25": "Nüfus sayımı"}` (yıl ya da metinden bir parça; metni yine Claude yazar). `npm run publish-history -- <tarih>` Instagram (gönderi, hikâye, Reels), Facebook ve X'e paylaşır.
 
 `.github/workflows/history.yml` her gün 12:30'da (İstanbul) paylaşır; tetikleme `daily.yml` ile aynı düzende: cron-job.org 12:10'da `history.yml` için `workflow_dispatch` (`{"ref":"main","inputs":{"auto":"true"}}`), GitHub cron yedek. Tek paylaşım işareti `images` branch'inde `published-history/<tarih>`, görseller `history/` altında. Otomatik tetiklemeler 11:00–17:00 İstanbul dışında atlanır.
 
