@@ -306,9 +306,9 @@ h1 mark { background: none; color: ${color}; filter: brightness(1.4); }
   <div class="photo"></div>
   <div class="top"><div class="brandrow">${logoMark(44)}<span>${BRAND}</span></div><div class="day">${esc(day)}</div></div>
   <div class="body">
-    <div class="tags"><span class="tag main">★ Günün manşeti</span><span class="tag cat">${CATEGORY_LABEL[s.category]}</span></div>
-    <h1 class="serif fit" data-var="--h" data-min="44">${headline(s)}</h1>
-    <p class="sum">${esc(summary)}</p>
+    <div class="tags"><span class="tag main">★ ${s.top ? "Günün manşeti" : "Öne çıkan"}</span><span class="tag cat">${CATEGORY_LABEL[s.category]}</span></div>
+    <h1 class="serif fit" data-var="--h" data-min="44">${s.hook ? esc(s.hook) : headline(s)}</h1>
+    <p class="sum">${esc(s.hook ? s.title : summary)}</p>
     <div class="foot"><span>Kaynak ve fotoğraf: ${esc(s.sources.slice(0, 3).join(", "))}</span><b>${HANDLE} · Günün tüm manşetleri profilde</b></div>
   </div>
 </body></html>`;

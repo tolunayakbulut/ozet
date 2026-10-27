@@ -11,6 +11,10 @@ export interface Story {
   /** Most important story of the day (first by importance, before category sorting). */
   top?: boolean;
   summary: string;
+  /** Punchy photo-card headline, factual but written to stop the scroll. */
+  hook?: string;
+  /** 1-10: how much the wide public will react, comment and share. Picks the photo cards. */
+  engagement?: number;
   category: Category;
   sources: string[];
   link: string;
@@ -157,6 +161,8 @@ const Selection = z.object({
       category: z.enum(["gundem", "ekonomi", "dunya", "spor", "teknoloji"]),
       title: z.string(),
       summary: z.string(),
+      hook: z.string(),
+      engagement: z.number().int(),
     }),
   ),
 });
@@ -166,10 +172,16 @@ Sana son 24 saatin haberleri, aynı olayı anlatanlar kümelenmiş halde veriliy
 Görevin:
 - Günün en önemli olaylarını seç. Kategori çeşitliliği gözet (gündem, ekonomi, dünya, spor, teknoloji) ama önemi feda etme.
 - Magazin, reklam, burç, tekrar eden rutin duyuruları seçme.
+- Geniş kitlenin cebine ve gündelik hayatına doğrudan dokunan haberleri kaçırma: emekli/memur zammı, asgari ücret, akaryakıt, elektrik-doğalgaz, kira, vergi, faiz, sınav, trafik cezası gibi.
 - Her olay için:
   - title: olayı tek başına anlatan, bilgi veren tek cümle (en fazla 90 karakter). Okuyan sadece bunu okuyup ne olduğunu anlamalı. Örnek: "FIFA, Fenerbahçe'ye üç dönem transfer yasağı verdi". Tık tuzağı, soru, alıntı başlığı yok.
     Başlığın en önemli kısmını köşeli parantezle işaretle: tam bir çift, EN FAZLA 3 kelime. Göz ilk buraya gitmeli: kritik sayı ya da olayın özü. Örnek: "FIFA, Fenerbahçe'ye [3 dönem transfer yasağı] verdi" değil "FIFA, Fenerbahçe'ye üç dönem [transfer yasağı] verdi".
   - summary: başlıkta olmayan en önemli ek bilgiyi veren 1-2 cümle (en fazla 180 karakter).
+  - hook: Instagram fotoğraf kartı için kaydırmayı durduran, çarpıcı başlık (en fazla 70 karakter). title'ı tekrarlama, farklı bir açıdan vur:
+    okuyucunun cebine/hayatına etkisini, en şaşırtıcı ayrıntıyı ya da duygusal çekirdeği öne çıkar; kısa, güçlü kelimeler, gerekirse "Sizi de ilgilendiriyor", "İşte", "Resmen" gibi girişler.
+    Örnekler: "Emekliye zam belli oldu: İşte yeni maaşlar", "Akaryakıta gece yarısı zammı: Depo artık daha pahalı", "Konteyner kâğıt gibi uçtu: 4 işçi hayatını kaybetti".
+    Yine de doğru ve kaynağa sadık: metinde olmayan sayı, abartı, yalan vaat yok.
+  - engagement: 1-10, sıradan Türk okuyucunun bu habere ne kadar tepki vereceği, yorum yapıp paylaşacağı (cebe dokunan, tartışma yaratan, şaşırtan haber yüksek; rutin diplomatik haber düşük).
 - Her olayı yalnızca kendi kümesindeki metne dayanarak yaz; başka kümelerden bilgi taşıma. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kaynak metni kopyalama.
 - Tarafsız ve sade dil kullan; yorum ekleme.
 - İlk sıradaki haber günün manşeti olacak.`;
@@ -220,10 +232,14 @@ export async function selectWithClaude(articles: Article[], count: number): Prom
         if (bad.length) console.warn(`  ! özetten cümle silindi (kaynakta yok: ${bad.join(", ")}): ${sentence.trim()}`);
         return bad.length === 0;
       });
+      const badHook = unsupportedNumbers(s.hook, articles);
+      if (badHook.length) console.warn(`  ! hook atlandı (kaynakta yok: ${badHook.join(", ")}): ${s.hook}`);
       return {
         ...toStory(clusters[s.cluster_id], s.category),
         ...splitHighlight(s.title),
         summary: kept.join("").trim() || s.title,
+        hook: badHook.length || !s.hook.trim() ? undefined : s.hook.trim(),
+        engagement: s.engagement,
       };
     });
 }

@@ -47,17 +47,18 @@ function hashtags(stories: Story[], extra: string[] = []): string {
   return [...new Set(tags)].slice(0, 15).join(" ");
 }
 
-/** Headline-card days (getUTCDay of the noon edition time): Monday, Wednesday, Friday. */
-const HEADLINE_CARD_DAYS = [1, 3, 5];
+/** Photo cards per evening: the stories with a photo that will draw the most reactions. */
+const HEADLINE_CARDS = 2;
 
 function headlineCaption(s: Story, date: Date): string {
   const dateLabel = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
   return [
-    `★ GÜNÜN MANŞETİ · ${dateLabel}`,
+    `★ ${s.top ? "GÜNÜN MANŞETİ" : "ÖNE ÇIKAN"} · ${dateLabel}`,
+    ...(s.hook ? [s.hook] : []),
     s.title,
     trimTo(s.summary, 600),
     `(Kaynak ve fotoğraf: ${s.sources.slice(0, 3).join(", ")})`,
-    "👇 Sen ne düşünüyorsun? Yorumlara yaz.\nGünün tüm manşetleri bir önceki postta.",
+    "👇 Sen ne düşünüyorsun? Yorumlara yaz.\nGünün tüm manşetleri profilde.",
     hashtags([s], titleTags(s.title, 5)),
   ].join("\n\n");
 }
@@ -105,6 +106,7 @@ async function main() {
 
   for (const [i, s] of stories.entries()) {
     console.log(`  ${i + 1}. [${CATEGORY_LABEL[s.category]}] ${s.title} (${s.sources.join(", ")})`);
+    if (s.hook) console.log(`     hook ${s.engagement}/10: ${s.hook}`);
   }
 
   let quotes: Quote[] = [];
@@ -116,11 +118,16 @@ async function main() {
   }
 
   console.log("Render…");
-  // Some days the top story (if it has a photo) also gets its own big photo card as a second feed post (02.jpg).
-  const top = stories.find((s) => s.top);
-  const card = top?.image && HEADLINE_CARD_DAYS.includes(now.getUTCDay()) ? top : undefined;
-  const files = await renderSlides([digestHtml(stories, now, quotes), ...(card ? [headlineCardHtml(card, now)] : [])], outDir);
-  if (card) await writeFile(path.join(outDir, "manset.txt"), headlineCaption(card, now));
+  // The most engaging stories with a photo also get their own big photo card as separate feed posts:
+  // 02.jpg + manset.txt, 03.jpg + manset2.txt. Without Claude scores, importance order (top story first).
+  const cards = selected
+    .filter((s) => s.image)
+    .sort((a, b) => (b.engagement ?? 0) - (a.engagement ?? 0))
+    .slice(0, HEADLINE_CARDS);
+  const files = await renderSlides([digestHtml(stories, now, quotes), ...cards.map((s) => headlineCardHtml(s, now))], outDir);
+  for (const [i, s] of cards.entries()) {
+    await writeFile(path.join(outDir, `manset${i ? i + 1 : ""}.txt`), headlineCaption(s, now));
+  }
   // video.mp4: animated 9:16 version with music, used for the Instagram story and Reels.
   console.log("Video…");
   files.push(
