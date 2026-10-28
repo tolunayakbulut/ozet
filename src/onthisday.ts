@@ -189,7 +189,7 @@ export async function pickWithClaude(all: Candidate[]): Promise<HistoryEvent> {
   if (badTitle.length) console.warn(`  ! BAŞLIK kontrol edilmeli: "${p.title}" (kaynakta yok: ${badTitle.join(", ")})`);
   // "Yarın X'i ilan edeceğiz" happened the day before X; a title that drops the "yarın" moves X onto this date.
   const later = /\b(yarın|ertesi gün)/i;
-  const shifted = later.test(c.text) && !later.test(p.title);
+  const shifted = later.test(c.text) && !later.test(p.title) && !/[ae]ca[kğ]|[ae]ce[kğ]/i.test(p.title);
   if (shifted) console.warn(`  ! başlık tarihi kaydırıyordu, kaynak metin kullanıldı: "${p.title}"`);
   const title = shifted ? { title: trim(c.text, 110) } : splitHighlight(p.title);
   // A sentence ends before a capital letter; "20. yüzyıl" style ordinals don't split.

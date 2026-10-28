@@ -39,14 +39,17 @@ async function main() {
   console.log("Vikipedi: tarihte bugün…");
   const candidates = await fetchCandidates(date);
   console.log(`  ${candidates.length} fotoğraflı aday`);
-  // history-picks.json: {"YYYY-MM-DD": "year or text"} pins the day's item (Claude still writes it).
-  const picks = JSON.parse(await readFile("history-picks.json", "utf8").catch(() => "{}")) as Record<string, string>;
-  const pick = picks[edition];
+  // history-picks.json: {"YYYY-MM-DD": "year or text"} pins the day's item (Claude still writes it);
+  // {"YYYY-MM-DD": {"pick": "...", "title": "...", "detail": "...", "question": "..."}} also fixes the wording.
+  type Pin = string | ({ pick: string } & Partial<Pick<HistoryEvent, "title" | "highlight" | "detail" | "question" | "tags">>);
+  const picks = JSON.parse(await readFile("history-picks.json", "utf8").catch(() => "{}")) as Record<string, Pin>;
+  const entry = picks[edition];
+  const { pick, ...wording } = typeof entry === "string" ? { pick: entry } : (entry ?? { pick: undefined });
   const pinned = pick ? candidates.filter((c) => String(c.year) === pick || c.text.includes(pick)) : [];
   if (pick) console.log(pinned.length ? `  Seçili: ${pinned.map((c) => c.text).join(" | ")}` : `  ! "${pick}" adaylarda yok, normal seçim`);
   const pool = pinned.length ? pinned : candidates;
   const useClaude = !forceHeuristic && Boolean(process.env.ANTHROPIC_API_KEY);
-  const event = useClaude ? await pickWithClaude(pool) : pickHeuristic(pool);
+  const event = { ...(useClaude ? await pickWithClaude(pool) : pickHeuristic(pool)), ...wording };
   console.log(`  ${event.year}: ${event.title}\n  ${event.detail}\n  ? ${event.question}\n  ${event.imageUrl}`);
 
   const photo = await photoDataUri(event.imageUrl);

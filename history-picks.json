@@ -1,1 +1,10 @@
-{ "2026-10-25": "Nüfus sayımı yapıldı" }
+{
+  "2026-10-25": "Nüfus sayımı yapıldı",
+  "2026-10-28": {
+    "pick": "Yarın Cumhuriyeti ilan edeceğiz",
+    "title": "Mustafa Kemal: \"Yarın Cumhuriyeti ilan edeceğiz\"",
+    "highlight": "Yarın Cumhuriyeti",
+    "detail": "Mustafa Kemal Paşa bu sözleri Çankaya Köşkü'nde verdiği akşam yemeğinde, konuklarına söyledi. Ertesi gün, 29 Ekim 1923'te Cumhuriyet TBMM'de ilan edildi.",
+    "question": "Yarın Cumhuriyet Bayramı'nı nasıl kutlayacaksın?"
+  }
+}
