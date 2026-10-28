@@ -156,8 +156,10 @@ function ffmpeg(args: string[]): Promise<void> {
 /**
  * Renders an animated HTML page (CSS animations with absolute delays) to a 1080x1920 H.264/AAC MP4.
  * Each frame pauses every animation at time t and screenshots it, so output is deterministic.
+ * A page may define `window.__tick(seconds)` for JS-driven parts (counters, subtitles).
+ * `voice` (any audio file ffmpeg reads) is mixed over the soundtrack.
  */
-export async function renderVideo(html: string, outFile: string, cues: Cues): Promise<string> {
+export async function renderVideo(html: string, outFile: string, cues: Cues, voice?: string): Promise<string> {
   const seconds = cues.total;
   const work = await mkdtemp(path.join(tmpdir(), "ozet-video-"));
   const browser = await chromium.launch();
@@ -188,6 +190,7 @@ export async function renderVideo(html: string, outFile: string, cues: Cues): Pr
           a.pause();
           a.currentTime = t;
         }
+        (window as unknown as { __tick?: (s: number) => void }).__tick?.(t / 1000);
       }, ms);
       await page.screenshot({ path: path.join(work, `f${String(f).padStart(4, "0")}.jpg`), type: "jpeg", quality: 90 });
     }
@@ -200,6 +203,10 @@ export async function renderVideo(html: string, outFile: string, cues: Cues): Pr
       "-framerate", String(FPS),
       "-i", path.join(work, "f%04d.jpg"),
       "-i", music,
+      // With a voiceover, the procedural soundtrack becomes a quiet bed under it.
+      ...(voice
+        ? ["-i", voice, "-filter_complex", "[1:a]volume=0.28[m];[2:a][m]amix=inputs=2:duration=first:normalize=0[a]", "-map", "0:v", "-map", "[a]"]
+        : []),
       "-c:v", "libx264",
       "-pix_fmt", "yuv420p",
       "-profile:v", "high",

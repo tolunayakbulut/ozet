@@ -35,6 +35,12 @@ npm start
 
 `.github/workflows/history.yml` her gün 12:30'da (İstanbul) paylaşır; tetikleme `daily.yml` ile aynı düzende: cron-job.org 12:10'da `history.yml` için `workflow_dispatch` (`{"ref":"main","inputs":{"auto":"true"}}`), GitHub cron yedek. Tek paylaşım işareti `images` branch'inde `published-history/<tarih>`, görseller `history/` altında. Otomatik tetiklemeler 11:00–17:00 İstanbul dışında atlanır.
 
+## Özet Anlatıyor (seslendirmeli açıklayıcı video)
+
+`npm run explainer -- <konu>` → `out/explainers/<konu>/`: süren bir gündemi baştan sona anlatan seslendirmeli, altyazılı 9:16 video (`video.mp4`) ve `caption.txt`. Her bölüm bir dosya: `src/explainers/<konu>.ts` (sahne başına anlatım metni + kodla çizilen görünüm; animasyonlar cümle başlarına bağlı). Örnek: `fon-krizi`.
+
+Ses: Gemini TTS, Alnilam (insta-video'nun Türkçe kanalıyla aynı ses), bütün metin tek istekte okunur (ücretsiz katman günde ~10 istek). Kelime zamanları insta-video'nun Whisper hizalayıcısıyla çıkar (`~/Projects/insta-video/tts-lab/.venv-cb`). `.env`'de `GEMINI_API_KEY` gerekir. Okuma önbelleğe alınır; metin değişmedikçe yeniden render kota harcamaz. Ekranda farklı, okumada farklı yazılması gereken kelimeler `spoken()` içinde (örn. "AK Parti" → "Ak Parti").
+
 ## Otomatik yayın (GitHub Actions)
 
 `.github/workflows/daily.yml` her akşam 20:00'de (İstanbul) paylaşır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e paylaşır. X'te haftalık deney: çift ISO haftası görsel + detay zinciri, tek hafta video + kaynak yanıtı; gönderi id'leri ve ertesi gün metrikleri `images` branch'inde `data/x/` altında (`src/x-metrics.ts`). Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow (beklemeden hemen paylaşır).

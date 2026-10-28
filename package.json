@@ -9,7 +9,8 @@
     "publish": "node --env-file-if-exists=.env --import tsx src/publish.ts",
     "logo": "node --import tsx src/logo.mts",
     "history": "node --env-file-if-exists=.env --import tsx src/history.ts",
-    "publish-history": "node --env-file-if-exists=.env --import tsx src/publish-history.ts"
+    "publish-history": "node --env-file-if-exists=.env --import tsx src/publish-history.ts",
+    "explainer": "node --env-file-if-exists=.env --import tsx src/explainer.ts"
   },
   "keywords": [],
   "author": "",
