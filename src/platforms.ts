@@ -46,6 +46,18 @@ export async function facebook(imageUrl: string, caption: string) {
   return body.post_id ?? body.id;
 }
 
+/** Video post on the Facebook Page from a public URL; returns the video id. */
+export async function facebookVideo(videoUrl: string, description: string) {
+  const params = new URLSearchParams({ file_url: videoUrl, description });
+  const res = await fetch(`${graph}/${env.FB_PAGE_ID}/videos?${params}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.IG_ACCESS_TOKEN}` },
+  });
+  const body = (await res.json()) as { id?: string; error?: { message: string } };
+  if (!res.ok || body.error) throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+  return body.id;
+}
+
 export function xClient() {
   return new TwitterApi({
     appKey: env.X_API_KEY!,

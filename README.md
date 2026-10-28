@@ -41,6 +41,8 @@ npm start
 
 Ses: Gemini TTS, Alnilam (insta-video'nun Türkçe kanalıyla aynı ses), bütün metin tek istekte okunur (ücretsiz katman günde ~10 istek). Kelime zamanları insta-video'nun Whisper hizalayıcısıyla çıkar (`~/Projects/insta-video/tts-lab/.venv-cb`). `.env`'de `GEMINI_API_KEY` gerekir. Okuma önbelleğe alınır; metin değişmedikçe yeniden render kota harcamaz. Ekranda farklı, okumada farklı yazılması gereken kelimeler `spoken()` içinde (örn. "AK Parti" → "Ak Parti").
 
+Paylaşım elle: videoyu `images` branch'ine `explainers/<konu>.mp4` olarak koy, sonra `VIDEO_URL=<raw URL> FB_PAGE_ID=... npm run publish-explainer -- <konu> "<tweet metni>"` (Instagram Reels + hikâye, Facebook video, X). Instagram hikâyesi 60 sn'den uzun videoyu kabul etmez; Facebook video için sayfa token'ında video yayınlama izni gerekir.
+
 ## Otomatik yayın (GitHub Actions)
 
 `.github/workflows/daily.yml` her akşam 20:00'de (İstanbul) paylaşır: render → görseli `images` branch'ine koyar (Instagram için public URL) → `npm run publish` ile Instagram (gönderi + müzikli animasyonlu hikâye + Reels) ve X'e paylaşır. X'te haftalık deney: çift ISO haftası görsel + detay zinciri, tek hafta video + kaynak yanıtı; gönderi id'leri ve ertesi gün metrikleri `images` branch'inde `data/x/` altında (`src/x-metrics.ts`). Secret'ı tanımlı olmayan platform atlanır. Elle tetiklemek: Actions → daily → Run workflow (beklemeden hemen paylaşır).
