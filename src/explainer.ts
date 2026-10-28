@@ -202,6 +202,7 @@ function page(ep: Episode, body: string, subs: Cue[], total: number, starts: num
   <div class="brand"><span class="logo" style="--s:64px"><span class="o">O</span><i style="left:27%"></i><i style="right:27%"></i></span>
   <div><div class="kick">ÖZET ANLATIYOR</div><div class="ttl">${esc(ep.title)}</div></div></div>
   <div class="prog">${segs}</div>
+  <div class="timer"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4l2.5 2M9.5 2.5h5M12 2.5v3"/></svg><span data-from="${Math.ceil(total)}" data-to="0" data-at="0" data-dur="${Math.ceil(total)}" data-lin="1">${Math.ceil(total)}</span><small>sn</small></div>
 </header>
 <main>${body}</main>
 <div id="sub"><span></span></div>
@@ -219,7 +220,8 @@ window.__tick = (t) => {
     box.style.transform = "translateY(" + (1 - k) * 14 + "px)";
   } else box.style.opacity = "0";
   for (const el of document.querySelectorAll("[data-to]")) {
-    const k = ease((t - Number(el.dataset.at)) / Number(el.dataset.dur || 1.6));
+    const x = (t - Number(el.dataset.at)) / Number(el.dataset.dur || 1.6);
+    const k = el.dataset.lin ? Math.min(1, Math.max(0, x)) : ease(x);
     const from = Number(el.dataset.from || 0), to = Number(el.dataset.to);
     el.textContent = fmt(from + (to - from) * k, Number(el.dataset.dec || 0));
   }
@@ -316,6 +318,8 @@ header { position: absolute; left: 72px; right: 72px; top: 150px; animation: fad
 .kick { font-size: 22px; font-weight: 800; letter-spacing: .24em; color: var(--red); }
 .ttl { font-family: 'Fraunces', serif; font-size: 54px; font-weight: 800; line-height: 1.05; }
 .prog { display: flex; gap: 8px; margin-top: 30px; }
+.timer { position: absolute; right: 0; top: 10px; display: flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--red); font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.timer span { color: var(--paper); min-width: 1.3em; text-align: right; } .timer small { font-size: 22px; color: var(--mute); font-weight: 700; }
 .prog i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); position: relative; overflow: hidden; }
 .prog i::after { content: ''; position: absolute; inset: 0; background: var(--paper); transform-origin: left; animation: grow var(--w) linear var(--d) both; }
 

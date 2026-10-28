@@ -41,10 +41,15 @@ const ep: Episode = {
   title: "Fon Krizi",
   scenes: [
     {
-      say: "Fon krizi. 131 fon tasfiye edildi, 455 bin yatırımcı etkilendi, 120 kişi tutuklandı. Baştan anlatalım.",
+      say: "Fon krizi, 90 saniyede. 131 fon tasfiye edildi, 455 bin yatırımcı etkilendi, 120 kişi tutuklandı.",
       view: (c) => `
 <div style="position:absolute;top:-180px;left:0;right:0">
-  <div class="kick an" style="${c.d(0.1)};font-size:30px">ÖZET ANLATIYOR</div>
+  <div style="display:flex;align-items:center;gap:26px">
+    <div class="kick an" style="${c.d(0.1)};font-size:30px">ÖZET ANLATIYOR</div>
+    <div class="pop" style="${c.d(at(c, 0, 0.45))};display:flex;align-items:center;gap:12px;padding:12px 26px 12px 18px;border-radius:999px;background:var(--red);color:#fff;font-size:32px;font-weight:800;letter-spacing:.06em">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4l2.5 2M9.5 2.5h5M12 2.5v3"/></svg>
+      90 SANİYEDE</div>
+  </div>
   <div class="big an" style="${c.d(0.25)};font-size:300px;margin-top:20px">FON</div>
   <div class="big an" style="${c.d(0.45)};font-size:300px;color:var(--red)">KRİZİ</div>
   <div class="rule grow" style="${c.d(0.8)};width:260px"></div>
@@ -151,7 +156,7 @@ const ep: Episode = {
       },
     },
     {
-      say: "Adalet Bakanı'na göre, 13 ile 16 Eylül arasında şüpheli çıkış yapan 214 kişi ve şirketin haksız kazancı 187 milyar lirayı aşıyor. Kriz siyasete de sıçrıyor: AK Parti Genel Başkan Yardımcısı Betül Sayan Kaya istifa ediyor.",
+      say: "Adalet Bakanı'na göre, kriz patlarken fonlardan çıkan 214 kişi ve şirketin haksız kazancı 187 milyar lirayı aşıyor. Kriz siyasete de sıçrıyor: AK Parti Genel Başkan Yardımcısı Betül Sayan Kaya istifa ediyor.",
       view: (c) => `${date(c, "13–16 Eylül")}
 <h2 class="an" style="${c.d(0.4)}">Kriz patlamadan <em>önce çıkanlar</em></h2>
 <div class="an" style="${c.d(at(c, 0, 0.5))};margin-top:50px">
@@ -209,8 +214,8 @@ const ep: Episode = {
 </div>`,
     },
     {
-      say: "Tasfiyenin 5 ila 6 ay sürmesi bekleniyor, soruşturma sürüyor. Özet Manşet'i takip edin.",
-      hold: 1.0,
+      say: "Tasfiyenin 5 ila 6 ay sürmesi bekleniyor. Özet Manşet'i takip edin.",
+      hold: 0.6,
       view: (c) => `
 <div class="kick an" style="${c.d(0.1)};font-size:30px">SIRADA NE VAR?</div>
 <div class="an" style="${c.d(0.3)};margin-top:36px;display:flex;flex-direction:column;gap:26px">
