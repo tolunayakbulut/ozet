@@ -141,6 +141,7 @@ Görevin:
 - detail: başlıkta olmayan ilginç bilgiyi veren 2-3 cümle (en fazla 260 karakter). Okuyan "bunu bilmiyordum" demeli. Uygunsa bugünle bağ kur, ama yalnızca metinde olan bilgiyle.
 - question: takipçiyi yorum yapmaya davet eden kısa, merak uyandıran, herkesin cevap verebileceği bir soru (en fazla 70 karakter). Kolay ve eğlenceli olsun, bugünle karşılaştırmaya davet etsin. Örnek: "Sence bugün nüfusumuz kaç?", "Concorde'a binmek ister miydin?". Siyasi ya da ideolojik görüş sorma, kişinin kendisine siyasetçi gibi davranma.
 - tags: konuya özgü 2-3 Türkçe hashtag, # olmadan, boşluksuz, küçük harf. Örnek: ["uzay", "nasa"].
+- Başlık o gün olanı anlatmalı. Madde "yarın", "ertesi gün" gibi sonraki bir günü anıyorsa o olay bugün olmadı: "dedi", "açıkladı" gibi bugün olanı yaz. Örnek: madde "Yarın Cumhuriyeti ilan edeceğiz dedi" ise başlık "Cumhuriyet ilan edildi" OLAMAZ.
 - Yalnızca maddenin metnine ve özetine dayanarak yaz. Metinde olmayan isim, sayı, tarih ekleme. Kendi cümlelerinle yaz, kopyalama. Tarafsız ve sade dil kullan.`;
 
 /** "A [B] C" -> title "A B C", highlight "B". Missing/odd brackets -> no highlight. */
@@ -186,6 +187,11 @@ export async function pickWithClaude(all: Candidate[]): Promise<HistoryEvent> {
 
   const badTitle = unsupportedNumbers(p.title, c);
   if (badTitle.length) console.warn(`  ! BAŞLIK kontrol edilmeli: "${p.title}" (kaynakta yok: ${badTitle.join(", ")})`);
+  // "Yarın X'i ilan edeceğiz" happened the day before X; a title that drops the "yarın" moves X onto this date.
+  const later = /\b(yarın|ertesi gün)/i;
+  const shifted = later.test(c.text) && !later.test(p.title);
+  if (shifted) console.warn(`  ! başlık tarihi kaydırıyordu, kaynak metin kullanıldı: "${p.title}"`);
+  const title = shifted ? { title: trim(c.text, 110) } : splitHighlight(p.title);
   // A sentence ends before a capital letter; "20. yüzyıl" style ordinals don't split.
   const sentences = p.detail.split(/(?<=[.!?])\s+(?=\p{Lu})/u);
   const kept = sentences.filter((s) => {
@@ -195,7 +201,7 @@ export async function pickWithClaude(all: Candidate[]): Promise<HistoryEvent> {
   });
   return {
     year: c.year,
-    ...splitHighlight(p.title),
+    ...title,
     detail: kept.join(" ").trim() || trim(c.extract, 260),
     question: unsupportedNumbers(p.question, c).length ? "Bu olayı biliyor muydun?" : p.question,
     tags: p.tags.map((t) => t.replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase("tr-TR")).filter(Boolean).slice(0, 3),
