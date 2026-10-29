@@ -7,6 +7,7 @@ import { renderVideo, videoCues } from "./video.ts";
 import { renderSlides } from "./render.ts";
 import { CATEGORY_LABEL } from "./feeds.ts";
 import { fetchMarket, type Quote } from "./market.ts";
+import { holiday } from "./holidays.ts";
 
 const STORY_COUNT = 8;
 const forceHeuristic = process.argv.includes("--no-llm");
@@ -67,11 +68,13 @@ function headlineCaption(s: Story, date: Date): string {
  * Image carries headlines only; the caption carries a short detail and sources per item.
  * Details are trimmed evenly until the caption fits Instagram's limit.
  */
-function buildCaption(stories: Story[], date: Date): string {
+function buildCaption(stories: Story[], date: Date, edition: string): string {
   const dateLabel = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  const greeting = holiday(edition)?.greeting;
   const build = (detailMax: number) =>
     [
       `Özet Manşet · ${dateLabel}`,
+      ...(greeting ? [greeting] : []),
       "👇 Sence bugünün en önemli haberi hangisi? Numarasını yorumlara yaz.",
       ...stories.map(
         (s, i) => `${i + 1}. ${s.title}\n${trimTo(s.summary, detailMax)}\n(Kaynak: ${s.sources.slice(0, 3).join(", ")})`,
@@ -134,7 +137,7 @@ async function main() {
     await renderVideo(digestHtml(stories, now, quotes, DEFAULT_THEME, true), path.join(outDir, "video.mp4"), videoCues(stories)),
   );
 
-  const caption = buildCaption(stories, now);
+  const caption = buildCaption(stories, now, edition);
   if (caption.length > CAPTION_LIMIT) console.warn(`  ! caption ${caption.length} karakter, Instagram sınırı 2200`);
   await writeFile(path.join(outDir, "caption.txt"), caption);
   await writeFile(path.join(outDir, "stories.json"), JSON.stringify(stories, null, 2));

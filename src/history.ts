@@ -4,6 +4,7 @@ import { fetchCandidates, photoDataUri, pickHeuristic, pickWithClaude, type Hist
 import { historyCardHtml, historyVideoHtml } from "./templates.ts";
 import { historyCues, renderVideo } from "./video.ts";
 import { renderSlides } from "./render.ts";
+import { holiday } from "./holidays.ts";
 
 /**
  * Tarihte Bugün: one event from Turkish Wikipedia's "on this day" feed, as a photo card (01.jpg),
@@ -17,11 +18,13 @@ function editionDate(): string {
   return process.env.EDITION_DATE ?? new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
 }
 
-function caption(e: HistoryEvent, date: Date): string {
+function caption(e: HistoryEvent, date: Date, edition: string): string {
   const day = date.toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-  const tags = ["#tarihtebugün", "#tarih", "#biliyormuydun", "#ozetmanset", ...e.tags.map((t) => `#${t}`)];
+  const h = holiday(edition);
+  const tags = [...(h?.tags ?? []), "#tarihtebugün", "#tarih", "#biliyormuydun", "#ozetmanset", ...e.tags].map((t) => `#${t.replace(/^#/, "")}`);
   return [
     `📜 TARİHTE BUGÜN · ${day} ${e.year}`,
+    ...(h ? [h.greeting] : []),
     e.title,
     e.detail,
     `👇 ${e.question} Yorumlara yaz.`,
@@ -43,7 +46,8 @@ async function main() {
   // {"YYYY-MM-DD": {"pick": "...", "title": "...", "detail": "...", "question": "..."}} also fixes the wording.
   type Pin = string | ({ pick: string } & Partial<Pick<HistoryEvent, "title" | "highlight" | "detail" | "question" | "tags">>);
   const picks = JSON.parse(await readFile("history-picks.json", "utf8").catch(() => "{}")) as Record<string, Pin>;
-  const entry = picks[edition];
+  // Milli bayramda bayramın kendi olayı (history-picks.json önce gelir).
+  const entry = picks[edition] ?? holiday(edition)?.pick;
   const { pick, ...wording } = typeof entry === "string" ? { pick: entry } : (entry ?? { pick: undefined });
   const pinned = pick ? candidates.filter((c) => String(c.year) === pick || c.text.includes(pick)) : [];
   if (pick) console.log(pinned.length ? `  Seçili: ${pinned.map((c) => c.text).join(" | ")}` : `  ! "${pick}" adaylarda yok, normal seçim`);
@@ -58,7 +62,7 @@ async function main() {
   console.log("Video…");
   files.push(await renderVideo(historyVideoHtml(event, photo, date), path.join(outDir, "video.mp4"), historyCues()));
 
-  await writeFile(path.join(outDir, "caption.txt"), caption(event, date));
+  await writeFile(path.join(outDir, "caption.txt"), caption(event, date, edition));
   await writeFile(path.join(outDir, "event.json"), JSON.stringify(event, null, 2));
   console.log(`Bitti: ${files.map((f) => path.basename(f)).join(", ")} → ${outDir}/`);
 }

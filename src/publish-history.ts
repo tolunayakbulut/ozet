@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { HistoryEvent } from "./onthisday.ts";
+import { holiday } from "./holidays.ts";
 import { facebook, facebookConfigured, instagram, instagramConfigured, publishAll, xClient, xConfigured } from "./platforms.ts";
 
 /**
@@ -14,7 +15,8 @@ const dir = path.join("out", "history", date);
 
 function tweetText(e: HistoryEvent): string {
   const day = new Date(`${date}T12:00:00+03:00`).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-  const head = `📜 Tarihte bugün, ${day} ${e.year}: ${e.title}`;
+  const greeting = holiday(date)?.greeting;
+  const head = `${greeting ? `${greeting}\n\n` : ""}📜 Tarihte bugün, ${day} ${e.year}: ${e.title}`;
   const tail = "\n\n#tarihtebugün";
   const room = 275 - head.length - tail.length - 2;
   const detail = e.detail.length <= room ? e.detail : e.detail.slice(0, e.detail.lastIndexOf(" ", room - 1)) + "…";

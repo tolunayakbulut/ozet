@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { facebook, facebookConfigured, instagram, instagramConfigured, publishAll, xClient, xConfigured } from "./platforms.ts";
 import type { Story } from "./select.ts";
+import { holiday } from "./holidays.ts";
 
 /**
  * Publishes out/<date>/01.jpg to every platform whose env vars are set.
@@ -83,7 +84,8 @@ async function main() {
   const image = await readFile(path.join(dir, "01.jpg"));
   const caption = await readFile(path.join(dir, "caption.txt"), "utf8");
   const stories = JSON.parse(await readFile(path.join(dir, "stories.json"), "utf8")) as Story[];
-  const title = caption.split("\n")[0];
+  const greeting = holiday(date)?.greeting;
+  const title = caption.split("\n")[0] + (greeting ? `\n${greeting}` : "");
   const mansetCaption = await readFile(path.join(dir, "manset.txt"), "utf8").catch(() => "");
   const manset2Caption = await readFile(path.join(dir, "manset2.txt"), "utf8").catch(() => "");
 
